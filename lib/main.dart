@@ -11,7 +11,7 @@ void main() async {
   try {
     await Supabase.initialize(
       url: 'https://bjvxjaqlelsmuhmtqync.supabase.co',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdnhqYXFsZWxzbXVobXRxeW5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUxMjUzNzgsImV4cCI6MjA1MDcwMTM3OH0.nGzZ8_bwL3tQqLGlVVPnPCFTNYKqOwGxd5eH7GJQNho',
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdnhqYXFsZWxzbXVobXRxeW5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1OTUxNDYsImV4cCI6MjA4MjE3MTE0Nn0.oUP4e6EwHx5m7mXaVzNVyeFYgNAbOxypHzxn1JNFo2c',
     );
     debugPrint('Supabase initialized successfully');
   } catch (e) {

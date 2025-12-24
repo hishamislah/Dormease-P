@@ -167,6 +167,9 @@ class DataProvider extends ChangeNotifier {
       'status': room.status,
       'bathroomType': room.bathroomType,
     });
+    // Refresh data to ensure UI updates
+    await Future.delayed(const Duration(milliseconds: 100));
+    notifyListeners();
   }
 
   Future<void> updateRoom(Room updatedRoom) async {
@@ -182,10 +185,14 @@ class DataProvider extends ChangeNotifier {
       'status': updatedRoom.status,
       'bathroomType': updatedRoom.bathroomType,
     });
+    await Future.delayed(const Duration(milliseconds: 100));
+    notifyListeners();
   }
 
   Future<void> deleteRoom(String id) async {
     await _roomsService.deleteRoom(id);
+    await Future.delayed(const Duration(milliseconds: 100));
+    notifyListeners();
   }
 
   Future<void> addTenant(Tenant tenant) async {
@@ -206,6 +213,8 @@ class DataProvider extends ChangeNotifier {
       'leavingDate': tenant.leavingDate,
       'partialRent': tenant.partialRent,
     });
+    await Future.delayed(const Duration(milliseconds: 100));
+    notifyListeners();
   }
 
   Future<void> updateTenant(Tenant updatedTenant) async {
@@ -226,6 +235,8 @@ class DataProvider extends ChangeNotifier {
       'leavingDate': updatedTenant.leavingDate,
       'partialRent': updatedTenant.partialRent,
     });
+    await Future.delayed(const Duration(milliseconds: 100));
+    notifyListeners();
   }
 
   Future<void> markRentPaid(String tenantId, String month, [String paymentMethod = 'Cash']) async {
@@ -279,6 +290,8 @@ class DataProvider extends ChangeNotifier {
 
   Future<void> deleteTenant(String id) async {
     await _tenantsService.deleteTenant(id);
+    await Future.delayed(const Duration(milliseconds: 100));
+    notifyListeners();
   }
 
   Future<void> addTicket(Ticket ticket) async {
@@ -291,14 +304,20 @@ class DataProvider extends ChangeNotifier {
       'status': ticket.status,
       'priority': ticket.priority,
     });
+    await Future.delayed(const Duration(milliseconds: 100));
+    notifyListeners();
   }
 
   Future<void> deleteTicket(String id) async {
     await _ticketsService.deleteTicket(id);
+    await Future.delayed(const Duration(milliseconds: 100));
+    notifyListeners();
   }
 
   Future<void> updateTicketStatus(String id, String status) async {
     await _ticketsService.updateTicketStatus(id, status);
+    await Future.delayed(const Duration(milliseconds: 100));
+    notifyListeners();
   }
   
   Future<void> reconnect() async {
