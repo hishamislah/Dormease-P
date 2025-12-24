@@ -1,6 +1,6 @@
 // DO NOT EDIT. This is code generated via package:easy_localization/generate.dart
 
-// ignore_for_file: prefer_single_quotes, avoid_renaming_method_parameters
+// ignore_for_file: prefer_single_quotes, avoid_renaming_method_parameters, constant_identifier_names
 
 import 'dart:ui';
 
@@ -14,17 +14,17 @@ class CodegenLoader extends AssetLoader{
     return Future.value(mapLocales[locale.toString()]);
   }
 
-  static const Map<String,dynamic> en = {
+  static const Map<String,dynamic> _en = {
   "appName": "DormEase",
   "getStarted": "Get Started",
-  "welcomeText": "Welcome To DormEase",
+  "welcomeText": "Welcome to DormEase",
   "optMessage": "We will send you an OTP to verify your number",
-  "enterPhoneNo": "Enter phone no.",
+  "enterPhoneNo": "Enter Phone Number",
   "invalidPhoneNo": "Invalid phone number",
   "requestOtp": "Request OTP",
   "verificationCode": "Verification Code",
   "verificationDesc": "We sent you an OTP to your number",
-  "pleaseEnterValidOtp": "Please enter valid OTP",
+  "pleaseEnterValidOtp": "Please enter a valid OTP",
   "verificationSuccess": "Verification Success",
   "verifyOtp": "Verify OTP",
   "resendOtp": "Resend OTP",
@@ -37,8 +37,8 @@ class CodegenLoader extends AssetLoader{
   "invalidEmail": "Invalid email",
   "streetAddress": "Street Address",
   "city": "City",
-  "validCityName": "Please enter valid city name",
-  "stateUT": "State / UT",
+  "validCityName": "Please enter a valid city name",
+  "stateUT": "State",
   "country": "Country",
   "continuee": "Continue",
   "submit": "Submit",
@@ -50,17 +50,17 @@ class CodegenLoader extends AssetLoader{
   "help": "Help",
   "settings": "Settings",
   "logout": "Logout",
-  "revenue": "REVENUE",
-  "fromLastMonth": "From last month",
+  "revenue": "Revenue",
+  "fromLastMonth": "From Last Month",
   "rentDetails": "Rent Details",
   "paid": "Paid",
   "notPaid": "Not Paid",
-  "remindToPay": "REMIND TO PAY",
+  "remindToPay": "Remind to Pay",
   "stats": "Stats",
   "vacantBeds": "Vacant Beds",
   "total": "Total",
   "noticePeriod": "Notice Period",
-  "sureToLogout": "Sure to logout?",
+  "sureToLogout": "Sure to Logout?",
   "logoutSuccess": "Successfully Logged Out",
   "yes": "Yes",
   "no": "No",
@@ -68,15 +68,15 @@ class CodegenLoader extends AssetLoader{
   "addRoom": "Add Room",
   "available": "Available",
   "full": "Full",
-  "beds": "Beds:",
-  "underNotice": "Under Notice:",
-  "rentDue": "Rent Due:",
-  "activeTickets": "Active Tickets:",
-  "roomNo": "Room No:",
-  "joined": "Joined:",
+  "beds": "Beds",
+  "underNotice": "Under Notice",
+  "rentDue": "Rent Due",
+  "activeTickets": "Active Tickets",
+  "roomNo": "Room No",
+  "joined": "Joined",
   "active": "Active",
   "closed": "Closed",
-  "issue": "Issue: "
+  "issue": "Issue"
 };
-static const Map<String, Map<String,dynamic>> mapLocales = {"en": en};
+static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en};
 }
