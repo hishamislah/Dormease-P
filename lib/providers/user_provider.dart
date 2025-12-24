@@ -61,16 +61,14 @@ class UserProvider extends ChangeNotifier {
     };
     
     try {
-      String? profileId = await _authService.getCurrentProfileId();
-      if (profileId != null) {
-        await _userDataService.setUserData(profileId, data);
-      }
+      // Only save to business_info table, not profiles
       await _businessInfoService.setBusinessInfo(data);
       
       userData.addAll(data);
       notifyListeners();
     } catch (e) {
       debugPrint('Error updating business details: $e');
+      rethrow;
     }
   }
 }

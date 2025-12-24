@@ -29,13 +29,29 @@ class _EditProfileState extends State<EditProfile> {
   @override
   void initState() {
     super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      isLoading = true;
+    });
+    
+    // Load user data from Supabase
+    await context.read<UserProvider>().loadUserData();
+    
+    // Populate fields with loaded data
     final userData = context.read<UserProvider>().userData;
-    businessNameController.text = userData['businessName'] ?? '';
-    businessEmailController.text = userData['businessEmail'] ?? '';
+    businessNameController.text = userData['businessName'] ?? userData['business_name'] ?? '';
+    businessEmailController.text = userData['businessEmail'] ?? userData['business_email'] ?? '';
     addressController.text = userData['address'] ?? '';
     cityController.text = userData['city'] ?? '';
     stateController.text = userData['state'] ?? '';
     countryController.text = userData['country'] ?? '';
+    
+    setState(() {
+      isLoading = false;
+    });
   }
 
   @override

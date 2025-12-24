@@ -18,7 +18,11 @@ class SupabaseBusinessInfoService {
           .eq('profile_id', profileId)
           .maybeSingle();
 
-      return result;
+      // Convert snake_case to camelCase for app use
+      if (result != null) {
+        return _mapToCamelCase(result);
+      }
+      return null;
     } catch (e) {
       debugPrint('Error fetching business info: $e');
       return null;
@@ -70,6 +74,20 @@ class SupabaseBusinessInfoService {
         (match) => '_${match.group(0)!.toLowerCase()}',
       );
       mapped[snakeKey] = value;
+    });
+    return mapped;
+  }
+
+  // Helper method to convert snake_case to camelCase
+  Map<String, dynamic> _mapToCamelCase(Map<String, dynamic> data) {
+    final mapped = <String, dynamic>{};
+    data.forEach((key, value) {
+      // Convert snake_case to camelCase
+      final camelKey = key.replaceAllMapped(
+        RegExp(r'_([a-z])'),
+        (match) => match.group(1)!.toUpperCase(),
+      );
+      mapped[camelKey] = value;
     });
     return mapped;
   }
