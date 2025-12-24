@@ -1,8 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dormease/helper/ui_elements.dart';
-import 'package:dormease/services/auth_service.dart';
+import 'package:dormease/services/supabase_auth_service.dart';
 import 'package:dormease/views/home/home_screen.dart';
 import 'package:dormease/views/on_boarding/business_details.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +20,7 @@ class _LoginState extends State<Login> {
   var emailValid = true;
   var passwordValid = true;
   var isLoading = false;
-  final AuthService _authService = AuthService();
+  final SupabaseAuthService _authService = SupabaseAuthService();
 
   @override
   Widget build(BuildContext context) {

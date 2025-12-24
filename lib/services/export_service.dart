@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:csv/csv.dart';
-import 'tenants_service.dart';
+import 'supabase_tenants_service.dart';
 
 class ExportService {
-  final TenantsService _tenantsService = TenantsService();
+  final SupabaseTenantsService _tenantsService = SupabaseTenantsService();
 
   Future<void> exportTenantData() async {
     try {

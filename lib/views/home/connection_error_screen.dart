@@ -20,7 +20,7 @@ class ConnectionErrorScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Firebase Connection Error',
+              'Supabase Connection Error',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -31,7 +31,7 @@ class ConnectionErrorScreen extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 40),
               child: Text(
-                'This app requires a connection to Firebase to function. Please check your internet connection and try again.',
+                'This app requires a connection to Supabase to function. Please check your internet connection and try again.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,

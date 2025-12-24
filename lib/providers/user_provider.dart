@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../services/user_data_service.dart';
-import '../services/business_info_service.dart';
+import '../services/supabase_user_data_service.dart';
+import '../services/supabase_business_info_service.dart';
+import '../services/supabase_auth_service.dart';
 
 class UserProvider extends ChangeNotifier {
-  final UserDataService _userDataService = UserDataService();
-  final BusinessInfoService _businessInfoService = BusinessInfoService();
+  final SupabaseUserDataService _userDataService = SupabaseUserDataService();
+  final SupabaseBusinessInfoService _businessInfoService = SupabaseBusinessInfoService();
+  final SupabaseAuthService _authService = SupabaseAuthService();
   
   Map<String, dynamic> userData = {
     'phone': '',
@@ -20,13 +21,13 @@ class UserProvider extends ChangeNotifier {
 
   Future<void> loadUserData() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final userFirebaseData = await _userDataService.fetchUserData(user.uid);
+      String? profileId = await _authService.getCurrentProfileId();
+      if (profileId != null) {
+        final userSupabaseData = await _userDataService.fetchUserData(profileId);
         final businessInfo = await _businessInfoService.fetchBusinessInfo();
         
-        if (userFirebaseData != null) {
-          userData.addAll(userFirebaseData);
+        if (userSupabaseData != null) {
+          userData.addAll(userSupabaseData);
         }
         if (businessInfo != null) {
           userData.addAll(businessInfo);
@@ -60,9 +61,9 @@ class UserProvider extends ChangeNotifier {
     };
     
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await _userDataService.setUserData(user.uid, data);
+      String? profileId = await _authService.getCurrentProfileId();
+      if (profileId != null) {
+        await _userDataService.setUserData(profileId, data);
       }
       await _businessInfoService.setBusinessInfo(data);
       

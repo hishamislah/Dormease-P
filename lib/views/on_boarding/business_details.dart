@@ -1,7 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dormease/helper/ui_elements.dart';
 import 'package:dormease/translations/locale_keys.g.dart';
 import 'package:dormease/views/home/home_screen.dart';
@@ -10,7 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../services/auth_service.dart';
+import '../../services/supabase_auth_service.dart';
+import '../../services/supabase_business_info_service.dart';
 
 class BusinessDetails extends StatefulWidget {
   const BusinessDetails({super.key, required this.email});
@@ -211,12 +211,13 @@ class _BusinessDetailsState extends State<BusinessDetails> {
                 
                 try {
                   final prefs = await SharedPreferences.getInstance();
-                  String? profileId = prefs.getString(AuthService.currentProfileKey);
+                  String? profileId = prefs.getString(SupabaseAuthService.currentProfileKey);
                   
                   if (profileId != null) {
-                    // Try to save business info to Firestore
+                    // Save business info to Supabase
                     try {
-                      await FirebaseFirestore.instance.collection('businessInfo').doc(profileId).set({
+                      final businessInfoService = SupabaseBusinessInfoService();
+                      await businessInfoService.setBusinessInfo({
                         'phone': '',
                         'logoUrl': imagePath,
                         'businessName': nameController.text,
@@ -225,15 +226,9 @@ class _BusinessDetailsState extends State<BusinessDetails> {
                         'city': cityController.text,
                         'state': stateController.text,
                         'country': countryController.text,
-                      }, SetOptions(merge: true));
-                      
-                      // Mark business info as completed
-                      await FirebaseFirestore.instance.collection('profiles').doc(profileId).update({
-                        'hasCompletedBusinessInfo': true,
-                        'updatedAt': FieldValue.serverTimestamp(),
                       });
-                    } catch (firestoreError) {
-                      debugPrint('Firestore permission error, using local storage: $firestoreError');
+                    } catch (supabaseError) {
+                      debugPrint('Supabase error, using local storage: $supabaseError');
                       // Save business info locally
                       await prefs.setString('businessName', nameController.text);
                       await prefs.setString('businessEmail', widget.email);

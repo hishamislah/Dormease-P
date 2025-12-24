@@ -25,8 +25,8 @@ class LoadingScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               isConnecting 
-                ? 'Connecting to Firebase...'
-                : 'Loading data from Firebase...',
+                ? 'Connecting to Supabase...'
+                : 'Loading data from Supabase...',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,

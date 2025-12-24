@@ -1,17 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/room.dart';
 import '../models/tenant.dart';
 import '../models/ticket.dart';
-import '../services/rooms_service.dart';
-import '../services/tenants_service.dart';
-import '../services/tickets_service.dart';
+import '../services/supabase_rooms_service.dart';
+import '../services/supabase_tenants_service.dart';
+import '../services/supabase_tickets_service.dart';
 
 class DataProvider extends ChangeNotifier {
-  final RoomsService _roomsService = RoomsService();
-  final TenantsService _tenantsService = TenantsService();
-  final TicketsService _ticketsService = TicketsService();
+  final SupabaseRoomsService _roomsService = SupabaseRoomsService();
+  final SupabaseTenantsService _tenantsService = SupabaseTenantsService();
+  final SupabaseTicketsService _ticketsService = SupabaseTicketsService();
   
   List<Room> _rooms = [];
   List<Tenant> _tenants = [];
@@ -20,9 +19,9 @@ class DataProvider extends ChangeNotifier {
   bool _isConnected = false;
   
   // Stream subscriptions
-  StreamSubscription<QuerySnapshot>? _roomsSubscription;
-  StreamSubscription<QuerySnapshot>? _tenantsSubscription;
-  StreamSubscription<QuerySnapshot>? _ticketsSubscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _roomsSubscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _tenantsSubscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _ticketsSubscription;
 
   DataProvider() {
     _setupStreams();
@@ -35,21 +34,20 @@ class DataProvider extends ChangeNotifier {
     try {
       // Listen to rooms stream
       _roomsSubscription = _roomsService.roomsStream().listen(
-        (snapshot) {
-          _rooms = snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
+        (data) {
+          _rooms = data.map((item) {
             return Room(
-              id: doc.id,
-              roomNumber: data['roomNumber'] ?? '',
-              type: data['type'] ?? 'Standard',
-              totalBeds: data['totalBeds'] ?? 0,
-              occupiedBeds: data['occupiedBeds'] ?? 0,
-              rent: (data['rent'] ?? 0).toDouble(),
-              underNotice: data['underNotice'] ?? 0,
-              rentDue: data['rentDue'] ?? 0,
-              activeTickets: data['activeTickets'] ?? 0,
-              status: data['status'] ?? 'Available',
-              bathroomType: data['bathroomType'] ?? 'Non-attached',
+              id: item['id'].toString(),
+              roomNumber: item['room_number'] ?? '',
+              type: item['type'] ?? 'Standard',
+              totalBeds: item['total_beds'] ?? 0,
+              occupiedBeds: item['occupied_beds'] ?? 0,
+              rent: (item['rent'] ?? 0).toDouble(),
+              underNotice: item['under_notice'] ?? 0,
+              rentDue: item['rent_due'] ?? 0,
+              activeTickets: item['active_tickets'] ?? 0,
+              status: item['status'] ?? 'Available',
+              bathroomType: item['bathroom_type'] ?? 'Non-attached',
             );
           }).toList();
           _isConnected = true;
@@ -66,34 +64,32 @@ class DataProvider extends ChangeNotifier {
       
       // Listen to tenants stream
       _tenantsSubscription = _tenantsService.tenantsStream().listen(
-        (snapshot) {
-          _tenants = snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
+        (data) {
+          _tenants = data.map((item) {
             return Tenant(
-              id: doc.id,
-              name: data['name'] ?? '',
-              phone: data['phone'] ?? '',
-              email: data['email'] ?? '',
-              emergencyContact: data['emergencyContact'] ?? '',
-              description: data['description'] ?? '',
-              roomNumber: data['roomNumber'] ?? '',
-              joinedDate: (data['joinedDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              monthlyRent: (data['monthlyRent'] ?? 0).toDouble(),
-              securityDeposit: (data['securityDeposit'] ?? 0).toDouble(),
-              underNotice: data['underNotice'] ?? false,
-              rentDue: data['rentDue'] ?? false,
-              imagePath: data['imagePath'] ?? 'assets/images/dp.png',
-              rentDueDate: (data['rentDueDate'] as Timestamp?)?.toDate(),
-              leavingDate: (data['leavingDate'] as Timestamp?)?.toDate(),
-              partialRent: data['partialRent']?.toDouble(),
-              paymentHistory: (data['paymentHistory'] as List?)?.map((p) => PaymentRecord(
-                id: p['id'] ?? '',
-                date: (p['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
-                amount: (p['amount'] ?? 0).toDouble(),
-                status: p['status'] ?? 'Pending',
-                month: p['month'] ?? '',
-                paymentMethod: p['paymentMethod'] ?? 'Cash',
-              )).toList() ?? [],
+              id: item['id'].toString(),
+              name: item['name'] ?? '',
+              phone: item['phone'] ?? '',
+              email: item['email'] ?? '',
+              emergencyContact: item['emergency_contact'] ?? '',
+              description: item['description'] ?? '',
+              roomNumber: item['room_number'] ?? '',
+              joinedDate: item['joined_date'] != null 
+                  ? DateTime.parse(item['joined_date'])
+                  : DateTime.now(),
+              monthlyRent: (item['monthly_rent'] ?? 0).toDouble(),
+              securityDeposit: (item['security_deposit'] ?? 0).toDouble(),
+              underNotice: item['under_notice'] ?? false,
+              rentDue: item['rent_due'] ?? false,
+              imagePath: item['image_path'] ?? 'assets/images/dp.png',
+              rentDueDate: item['rent_due_date'] != null 
+                  ? DateTime.parse(item['rent_due_date'])
+                  : null,
+              leavingDate: item['leaving_date'] != null 
+                  ? DateTime.parse(item['leaving_date'])
+                  : null,
+              partialRent: item['partial_rent']?.toDouble(),
+              paymentHistory: [], // Will be loaded separately if needed
             );
           }).toList();
           _isConnected = true;
@@ -110,18 +106,19 @@ class DataProvider extends ChangeNotifier {
       
       // Listen to tickets stream
       _ticketsSubscription = _ticketsService.ticketsStream().listen(
-        (snapshot) {
-          _tickets = snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
+        (data) {
+          _tickets = data.map((item) {
             return Ticket(
-              id: doc.id,
-              title: data['title'] ?? '',
-              description: data['description'] ?? '',
-              raisedBy: data['raisedBy'] ?? '',
-              roomNumber: data['roomNumber'] ?? '',
-              date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              status: data['status'] ?? 'Open',
-              priority: data['priority'] ?? 'Medium',
+              id: item['id'].toString(),
+              title: item['title'] ?? '',
+              description: item['description'] ?? '',
+              raisedBy: item['raised_by'] ?? '',
+              roomNumber: item['room_number'] ?? '',
+              date: item['date'] != null 
+                  ? DateTime.parse(item['date'])
+                  : DateTime.now(),
+              status: item['status'] ?? 'Open',
+              priority: item['priority'] ?? 'Medium',
             );
           }).toList();
           _isConnected = true;
@@ -136,7 +133,7 @@ class DataProvider extends ChangeNotifier {
         }
       );
     } catch (e) {
-      debugPrint('Error setting up Firebase streams: $e');
+      debugPrint('Error setting up Supabase streams: $e');
       _isConnected = false;
       _isLoading = false;
       notifyListeners();
@@ -169,7 +166,6 @@ class DataProvider extends ChangeNotifier {
       'activeTickets': room.activeTickets,
       'status': room.status,
       'bathroomType': room.bathroomType,
-      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
@@ -185,7 +181,6 @@ class DataProvider extends ChangeNotifier {
       'activeTickets': updatedRoom.activeTickets,
       'status': updatedRoom.status,
       'bathroomType': updatedRoom.bathroomType,
-      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
@@ -201,24 +196,15 @@ class DataProvider extends ChangeNotifier {
       'emergencyContact': tenant.emergencyContact,
       'description': tenant.description,
       'roomNumber': tenant.roomNumber,
-      'joinedDate': Timestamp.fromDate(tenant.joinedDate),
+      'joinedDate': tenant.joinedDate,
       'monthlyRent': tenant.monthlyRent,
       'securityDeposit': tenant.securityDeposit,
       'underNotice': tenant.underNotice,
       'rentDue': tenant.rentDue,
       'imagePath': tenant.imagePath,
-      'rentDueDate': tenant.rentDueDate != null ? Timestamp.fromDate(tenant.rentDueDate!) : null,
-      'leavingDate': tenant.leavingDate != null ? Timestamp.fromDate(tenant.leavingDate!) : null,
+      'rentDueDate': tenant.rentDueDate,
+      'leavingDate': tenant.leavingDate,
       'partialRent': tenant.partialRent,
-      'paymentHistory': tenant.paymentHistory.map((p) => {
-        'id': p.id,
-        'date': Timestamp.fromDate(p.date),
-        'amount': p.amount,
-        'status': p.status,
-        'month': p.month,
-        'paymentMethod': p.paymentMethod,
-      }).toList(),
-      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
@@ -230,24 +216,15 @@ class DataProvider extends ChangeNotifier {
       'emergencyContact': updatedTenant.emergencyContact,
       'description': updatedTenant.description,
       'roomNumber': updatedTenant.roomNumber,
-      'joinedDate': Timestamp.fromDate(updatedTenant.joinedDate),
+      'joinedDate': updatedTenant.joinedDate,
       'monthlyRent': updatedTenant.monthlyRent,
       'securityDeposit': updatedTenant.securityDeposit,
       'underNotice': updatedTenant.underNotice,
       'rentDue': updatedTenant.rentDue,
       'imagePath': updatedTenant.imagePath,
-      'rentDueDate': updatedTenant.rentDueDate != null ? Timestamp.fromDate(updatedTenant.rentDueDate!) : null,
-      'leavingDate': updatedTenant.leavingDate != null ? Timestamp.fromDate(updatedTenant.leavingDate!) : null,
+      'rentDueDate': updatedTenant.rentDueDate,
+      'leavingDate': updatedTenant.leavingDate,
       'partialRent': updatedTenant.partialRent,
-      'paymentHistory': updatedTenant.paymentHistory.map((p) => {
-        'id': p.id,
-        'date': Timestamp.fromDate(p.date),
-        'amount': p.amount,
-        'status': p.status,
-        'month': p.month,
-        'paymentMethod': p.paymentMethod,
-      }).toList(),
-      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
@@ -310,10 +287,9 @@ class DataProvider extends ChangeNotifier {
       'description': ticket.description,
       'raisedBy': ticket.raisedBy,
       'roomNumber': ticket.roomNumber,
-      'date': Timestamp.fromDate(ticket.date),
+      'date': ticket.date,
       'status': ticket.status,
       'priority': ticket.priority,
-      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 

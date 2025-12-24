@@ -1,11 +1,11 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dormease/services/auth_service.dart';
+import 'package:dormease/services/supabase_auth_service.dart';
 import 'package:dormease/views/home/home_screen.dart';
 import 'package:dormease/views/on_boarding/on_boarding.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -33,21 +33,28 @@ class _SplashScreenState extends State<SplashScreen> {
       // Check if user is already logged in
       if (isLoggedIn) {
         // Check if we have a current profile
-        String? profileId = prefs.getString(AuthService.currentProfileKey);
+        String? profileId = prefs.getString(SupabaseAuthService.currentProfileKey);
         
         if (profileId != null) {
           // Verify the profile exists
-          final firestore = FirebaseFirestore.instance;
-          final profileDoc = await firestore.collection('profiles').doc(profileId).get();
-          
-          if (profileDoc.exists) {
-            // User has logged in before, go directly to home screen
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false
-            );
-            return;
+          try {
+            final result = await Supabase.instance.client
+                .from('profiles')
+                .select('profile_id')
+                .eq('profile_id', profileId)
+                .maybeSingle();
+            
+            if (result != null) {
+              // User has logged in before, go directly to home screen
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+                (route) => false
+              );
+              return;
+            }
+          } catch (e) {
+            debugPrint('Error checking profile: $e');
           }
         }
         
