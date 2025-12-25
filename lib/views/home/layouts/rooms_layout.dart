@@ -30,25 +30,14 @@ class _RoomsLayoutState extends State<RoomsLayout> {
             filterText = value;
           });
         },
-      ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
-        child: Row(
-          children: [
-            const SizedBox(width: 12),
-            Button(
-                label: LocaleKeys.addRoom.tr(),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AddRoomScreen(),
-                    ),
-                  );
-                },
-                isLoading: false)
-          ],
-        ),
+        onAddRoom: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddRoomScreen(),
+            ),
+          );
+        },
       ),
       Expanded(
           child: Consumer<DataProvider>(
