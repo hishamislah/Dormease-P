@@ -38,19 +38,29 @@ class Tenant {
   });
 
   DateTime get nextRentDueDate {
-    // Calculate rent due date as 1 day before the month completes
-    // For example, if joined on May 29, 2025, rent is due on June 28, 2025
+    // Calculate rent due date as 1 day before the joining day each month
+    // For example, if joined on 24th Nov, rent is due on 23rd of every month
     
-    // Get the next month's same day
-    DateTime nextMonth;
-    if (joinedDate.month == 12) {
-      nextMonth = DateTime(joinedDate.year + 1, 1, joinedDate.day);
-    } else {
-      nextMonth = DateTime(joinedDate.year, joinedDate.month + 1, joinedDate.day);
+    final now = DateTime.now();
+    final dueDayOfMonth = joinedDate.day - 1;
+    
+    // Calculate the next occurrence of the due day
+    DateTime dueDate;
+    
+    // Try current month first
+    dueDate = DateTime(now.year, now.month, dueDayOfMonth);
+    
+    // If the due date has passed this month, move to next month
+    if (dueDate.isBefore(now) || dueDate.day == now.day && dueDate.month == now.month && dueDate.year == now.year) {
+      // Move to next month
+      if (now.month == 12) {
+        dueDate = DateTime(now.year + 1, 1, dueDayOfMonth);
+      } else {
+        dueDate = DateTime(now.year, now.month + 1, dueDayOfMonth);
+      }
     }
     
-    // Subtract 1 day to get the day before
-    return nextMonth.subtract(const Duration(days: 1));
+    return dueDate;
   }
 
   String get rentPeriodDescription {

@@ -34,9 +34,13 @@ class PaymentService {
     DateTime joiningDate = tenant.joinedDate;
     DateTime currentDate = DateTime.now();
     
-    // If tenant joined after 7th of the month, start from next month
+    // Calculate the due day (1 day before joining day)
+    int dueDayOfMonth = joiningDate.day - 1;
+    if (dueDayOfMonth == 0) dueDayOfMonth = 28;
+    
+    // If tenant joined after the due date of the month, start from next month
     DateTime startMonth;
-    if (joiningDate.day > 7) {
+    if (joiningDate.day > dueDayOfMonth) {
       // Joined after rent due date, start from next month
       startMonth = _getNextMonth(DateTime(joiningDate.year, joiningDate.month, 1));
     } else {
@@ -68,7 +72,16 @@ class PaymentService {
   }
   
   static PaymentRecord _createPaymentForMonth(Tenant tenant, DateTime month) {
-    DateTime dueDate = DateTime(month.year, month.month, 7);
+    // Calculate due date as 1 day before the joining day
+    // For example, if joined on 24th, rent is due on 23rd of each month
+    int dueDayOfMonth = tenant.joinedDate.day - 1;
+    
+    // Handle edge case where joining date is 1st (due would be 0th/last day of previous month)
+    if (dueDayOfMonth == 0) {
+      dueDayOfMonth = 28; // Default to 28th for safety
+    }
+    
+    DateTime dueDate = DateTime(month.year, month.month, dueDayOfMonth);
     PaymentStatus status = _determinePaymentStatus(tenant, month, dueDate);
     
     return PaymentRecord(

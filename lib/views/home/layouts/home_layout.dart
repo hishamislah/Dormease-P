@@ -84,7 +84,9 @@ class _HomeLayoutState extends State<HomeLayout> {
             ],
             RentDetails(data: dynamicData, dataProvider: dataProvider),
             const SizedBox(height: 8),
-            Stats(data: dynamicData)
+            Stats(data: dynamicData),
+            const SizedBox(height: 8),
+            UpcomingPayments(tenants: dataProvider.tenants),
           ]),
         );
       },
@@ -201,7 +203,224 @@ class _RevenueCardState extends State<RevenueCard> {
         ));
   }
 }
+class UpcomingPayments extends StatefulWidget {
+  const UpcomingPayments({super.key, required this.tenants});
 
+  final List<Tenant> tenants;
+
+  @override
+  State<UpcomingPayments> createState() => _UpcomingPaymentsState();
+}
+
+class _UpcomingPaymentsState extends State<UpcomingPayments> {
+  bool showUpcoming = true; // true = upcoming, false = overdue
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    
+    // Filter tenants based on selected view
+    final filteredTenants = widget.tenants.where((tenant) {
+      if (tenant.rentDueDate == null) return false;
+      
+      if (showUpcoming) {
+        // Upcoming: future dates within next 7 days
+        final daysUntilDue = tenant.rentDueDate!.difference(now).inDays;
+        return daysUntilDue >= 0 && daysUntilDue <= 7;
+      } else {
+        // Overdue: past dates or rent due flag is true
+        return tenant.rentDueDate!.isBefore(now) && tenant.rentDue;
+      }
+    }).toList();
+
+    // Sort by due date
+    filteredTenants.sort((a, b) => a.rentDueDate!.compareTo(b.rentDueDate!));
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(width: 0.5, color: showUpcoming ? Colors.orange : Colors.red),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.payment, color: showUpcoming ? Colors.orange : Colors.red),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Payment Status",
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                // Toggle buttons
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => showUpcoming = true),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: showUpcoming ? Colors.orange : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "Upcoming",
+                            style: TextStyle(
+                              color: showUpcoming ? Colors.white : Colors.black87,
+                              fontWeight: showUpcoming ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => setState(() => showUpcoming = false),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: !showUpcoming ? Colors.red : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "Overdue",
+                            style: TextStyle(
+                              color: !showUpcoming ? Colors.white : Colors.black87,
+                              fontWeight: !showUpcoming ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 8),
+            if (filteredTenants.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Center(
+                  child: Text(
+                    showUpcoming 
+                        ? "No upcoming payments in the next 7 days"
+                        : "No overdue payments",
+                    style: const TextStyle(color: Colors.grey, fontSize: 15),
+                  ),
+                ),
+              )
+            else
+              ...filteredTenants.map((tenant) {
+                final daysUntilDue = tenant.rentDueDate!.difference(now).inDays;
+                final dueDate = DateFormat('dd MMM yyyy').format(tenant.rentDueDate!);
+                final badgeColor = showUpcoming ? Colors.orange : Colors.red;
+                final bgColor = showUpcoming ? Colors.orange.withOpacity(0.1) : Colors.red.withOpacity(0.1);
+                
+                String badgeText;
+                if (showUpcoming) {
+                  badgeText = daysUntilDue == 0 ? 'TODAY' : '$daysUntilDue\nDAYS';
+                } else {
+                  final daysOverdue = now.difference(tenant.rentDueDate!).inDays;
+                  badgeText = daysOverdue == 0 ? 'TODAY' : '$daysOverdue\nDAYS';
+                }
+                
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    border: Border.all(width: 0.5, color: badgeColor),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: badgeColor,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              badgeText,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                tenant.name,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Room ${tenant.roomNumber}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '₹${tenant.monthlyRent.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: badgeColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              dueDate,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+}
 class RentDetails extends StatelessWidget {
   const RentDetails({
     super.key,

@@ -64,7 +64,8 @@ class DataProvider extends ChangeNotifier {
       
       // Listen to tenants stream
       _tenantsSubscription = _tenantsService.tenantsStream().listen(
-        (data) {
+        (data) async {
+          final now = DateTime.now();
           _tenants = data.map((item) {
             return Tenant(
               id: item['id'].toString(),
@@ -92,6 +93,26 @@ class DataProvider extends ChangeNotifier {
               paymentHistory: [], // Will be loaded separately if needed
             );
           }).toList();
+          
+          // Auto-update rent due status for tenants
+          for (var tenant in _tenants) {
+            if (tenant.rentDueDate != null) {
+              final isRentDue = now.isAfter(tenant.rentDueDate!) || 
+                               now.year == tenant.rentDueDate!.year &&
+                               now.month == tenant.rentDueDate!.month &&
+                               now.day == tenant.rentDueDate!.day;
+              
+              // Update database if rent is due but not marked yet
+              if (isRentDue && !tenant.rentDue) {
+                try {
+                  await _tenantsService.updateTenant(tenant.id, {'rentDue': true});
+                } catch (e) {
+                  debugPrint('Error auto-updating rent due status: $e');
+                }
+              }
+            }
+          }
+          
           _isConnected = true;
           _isLoading = false;
           notifyListeners();
