@@ -28,7 +28,7 @@ abstract class  LocaleKeys {
   static const validCityName = 'validCityName';
   static const stateUT = 'stateUT';
   static const country = 'country';
-  static const continuee = 'continuee';
+  static const continue = 'continue';
   static const submit = 'submit';
   static const dashboard = 'dashboard';
   static const rooms = 'rooms';

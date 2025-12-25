@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/room.dart';
 import '../models/tenant.dart';
 import '../models/ticket.dart';
@@ -66,7 +67,9 @@ class DataProvider extends ChangeNotifier {
       _tenantsSubscription = _tenantsService.tenantsStream().listen(
         (data) async {
           final now = DateTime.now();
-          _tenants = data.map((item) {
+          
+          // First, create tenant objects with empty payment history
+          List<Tenant> tenantsList = data.map((item) {
             return Tenant(
               id: item['id'].toString(),
               name: item['name'] ?? '',
@@ -90,9 +93,49 @@ class DataProvider extends ChangeNotifier {
                   ? DateTime.parse(item['leaving_date'])
                   : null,
               partialRent: item['partial_rent']?.toDouble(),
-              paymentHistory: [], // Will be loaded separately if needed
+              paymentHistory: [],
             );
           }).toList();
+          
+          // Then, fetch payment history for each tenant
+          for (int i = 0; i < tenantsList.length; i++) {
+            final tenant = tenantsList[i];
+            try {
+              final payments = await _tenantsService.fetchPaymentHistory(tenant.id);
+              final paymentRecords = payments.map((p) => PaymentRecord(
+                id: p['id'].toString(),
+                date: DateTime.parse(p['date']),
+                amount: (p['amount'] ?? 0).toDouble(),
+                status: p['status'] ?? 'Pending',
+                month: p['month'] ?? '',
+                paymentMethod: p['payment_method'] ?? 'Cash',
+              )).toList();
+              
+              tenantsList[i] = Tenant(
+                id: tenant.id,
+                name: tenant.name,
+                phone: tenant.phone,
+                email: tenant.email,
+                emergencyContact: tenant.emergencyContact,
+                description: tenant.description,
+                roomNumber: tenant.roomNumber,
+                joinedDate: tenant.joinedDate,
+                monthlyRent: tenant.monthlyRent,
+                securityDeposit: tenant.securityDeposit,
+                underNotice: tenant.underNotice,
+                rentDue: tenant.rentDue,
+                imagePath: tenant.imagePath,
+                rentDueDate: tenant.rentDueDate,
+                leavingDate: tenant.leavingDate,
+                partialRent: tenant.partialRent,
+                paymentHistory: paymentRecords,
+              );
+            } catch (e) {
+              debugPrint('Error loading payment history for tenant ${tenant.id}: $e');
+            }
+          }
+          
+          _tenants = tenantsList;
           
           // Auto-update rent due status for tenants
           for (var tenant in _tenants) {
@@ -102,12 +145,27 @@ class DataProvider extends ChangeNotifier {
                                now.month == tenant.rentDueDate!.month &&
                                now.day == tenant.rentDueDate!.day;
               
-              // Update database if rent is due but not marked yet
-              if (isRentDue && !tenant.rentDue) {
+              // Check if current month has been paid
+              final currentMonthYear = DateFormat('MMMM yyyy').format(now);
+              final hasPaymentForCurrentMonth = tenant.paymentHistory.any((payment) {
+                return payment.month.toLowerCase().trim() == currentMonthYear.toLowerCase() &&
+                       payment.status.toLowerCase() == 'paid';
+              });
+              
+              // Only update database if rent is due, not marked yet, AND current month hasn't been paid
+              if (isRentDue && !tenant.rentDue && !hasPaymentForCurrentMonth) {
                 try {
                   await _tenantsService.updateTenant(tenant.id, {'rentDue': true});
                 } catch (e) {
                   debugPrint('Error auto-updating rent due status: $e');
+                }
+              }
+              // If rent is marked as due but current month is paid, set it to false
+              else if (tenant.rentDue && hasPaymentForCurrentMonth) {
+                try {
+                  await _tenantsService.updateTenant(tenant.id, {'rentDue': false});
+                } catch (e) {
+                  debugPrint('Error clearing rent due status: $e');
                 }
               }
             }

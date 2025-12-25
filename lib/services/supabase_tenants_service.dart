@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 import 'supabase_auth_service.dart';
 
 class SupabaseTenantsService {
@@ -180,20 +181,42 @@ class SupabaseTenantsService {
         });
       }
 
-      // Check if any payments are still pending
-      final pendingPayments = await _supabase
-          .from('payment_history')
-          .select('*')
-          .eq('tenant_id', tenantId)
-          .eq('status', 'Pending');
-
-      final hasPendingPayments = pendingPayments.isNotEmpty;
+      // Check current month and rent due date to determine if rent is still due
+      final now = DateTime.now();
+      final currentMonthYear = DateFormat('MMMM yyyy').format(now);
+      
+      // If we just paid the current month's rent, mark rent_due as false
+      // Otherwise, check if rent due date has passed
+      bool rentDue = false;
+      if (month == currentMonthYear) {
+        // Just paid current month, so no longer due
+        rentDue = false;
+      } else {
+        // Check if rent due date has passed for current month
+        if (tenant['rent_due_date'] != null) {
+          final rentDueDate = DateTime.parse(tenant['rent_due_date']);
+          rentDue = now.isAfter(rentDueDate);
+          
+          // Also check if current month payment exists
+          final currentMonthPayment = await _supabase
+              .from('payment_history')
+              .select('*')
+              .eq('tenant_id', tenantId)
+              .eq('month', currentMonthYear)
+              .eq('status', 'Paid')
+              .maybeSingle();
+          
+          if (currentMonthPayment != null) {
+            rentDue = false;
+          }
+        }
+      }
 
       // Update tenant
       await _supabase
           .from('tenants')
           .update({
-            'rent_due': hasPendingPayments,
+            'rent_due': rentDue,
             'last_payment_date': DateTime.now().toIso8601String(),
             'last_payment_month': month,
           })
@@ -203,6 +226,22 @@ class SupabaseTenantsService {
     } catch (e) {
       debugPrint('Error marking rent as paid: $e');
       rethrow;
+    }
+  }
+
+  // Fetch payment history for a tenant
+  Future<List<Map<String, dynamic>>> fetchPaymentHistory(String tenantId) async {
+    try {
+      final payments = await _supabase
+          .from('payment_history')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .order('date', ascending: false);
+      
+      return payments;
+    } catch (e) {
+      debugPrint('Error fetching payment history: $e');
+      return [];
     }
   }
 

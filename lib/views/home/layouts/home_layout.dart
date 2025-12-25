@@ -86,7 +86,7 @@ class _HomeLayoutState extends State<HomeLayout> {
             const SizedBox(height: 8),
             Stats(data: dynamicData),
             const SizedBox(height: 8),
-            UpcomingPayments(tenants: dataProvider.tenants),
+            const UpcomingPayments(),
           ]),
         );
       },
@@ -204,9 +204,7 @@ class _RevenueCardState extends State<RevenueCard> {
   }
 }
 class UpcomingPayments extends StatefulWidget {
-  const UpcomingPayments({super.key, required this.tenants});
-
-  final List<Tenant> tenants;
+  const UpcomingPayments({super.key});
 
   @override
   State<UpcomingPayments> createState() => _UpcomingPaymentsState();
@@ -217,24 +215,27 @@ class _UpcomingPaymentsState extends State<UpcomingPayments> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    
-    // Filter tenants based on selected view
-    final filteredTenants = widget.tenants.where((tenant) {
-      if (tenant.rentDueDate == null) return false;
-      
-      if (showUpcoming) {
-        // Upcoming: future dates within next 7 days
-        final daysUntilDue = tenant.rentDueDate!.difference(now).inDays;
-        return daysUntilDue >= 0 && daysUntilDue <= 7;
-      } else {
-        // Overdue: past dates or rent due flag is true
-        return tenant.rentDueDate!.isBefore(now) && tenant.rentDue;
-      }
-    }).toList();
+    return Consumer<DataProvider>(
+      builder: (context, dataProvider, child) {
+        final now = DateTime.now();
+        final tenants = dataProvider.tenants;
+        
+        // Filter tenants based on selected view
+        final filteredTenants = tenants.where((tenant) {
+          if (tenant.rentDueDate == null) return false;
+          
+          if (showUpcoming) {
+            // Upcoming: future dates within next 7 days
+            final daysUntilDue = tenant.rentDueDate!.difference(now).inDays;
+            return daysUntilDue >= 0 && daysUntilDue <= 7;
+          } else {
+            // Overdue: past dates AND rent is still due (not paid)
+            return tenant.rentDueDate!.isBefore(now) && tenant.rentDue;
+          }
+        }).toList();
 
-    // Sort by due date
-    filteredTenants.sort((a, b) => a.rentDueDate!.compareTo(b.rentDueDate!));
+        // Sort by due date
+        filteredTenants.sort((a, b) => a.rentDueDate!.compareTo(b.rentDueDate!));
 
     return Container(
       decoration: BoxDecoration(
@@ -418,6 +419,8 @@ class _UpcomingPaymentsState extends State<UpcomingPayments> {
           ],
         ),
       ),
+    );
+      },
     );
   }
 }
