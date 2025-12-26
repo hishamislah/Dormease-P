@@ -300,7 +300,6 @@ class _AddTenantScreenState extends State<AddTenantScreen> {
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     name: nameController.text,
                     phone: phoneController.text,
-                    email: "tenant@example.com", // Default email
                     emergencyContact: emergencyContactController.text,
                     description: descriptionController.text,
                     roomNumber: roomController.text,

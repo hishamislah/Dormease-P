@@ -20,6 +20,7 @@ class _EditRoomScreenState extends State<EditRoomScreen> {
   var roomNumberValid = true;
   var rentValid = true;
   var isLoading = false;
+  bool isAvailable = true;
   
   String selectedRoomType = 'Single';
   List<String> roomTypes = ['Single', 'Double', 'Triple', 'Quad'];
@@ -32,6 +33,7 @@ class _EditRoomScreenState extends State<EditRoomScreen> {
     rentController.text = widget.room.rent.toStringAsFixed(0);
     selectedRoomType = widget.room.type;
     totalBeds = widget.room.totalBeds;
+    isAvailable = widget.room.status != 'Unavailable';
   }
 
   @override
@@ -165,6 +167,103 @@ class _EditRoomScreenState extends State<EditRoomScreen> {
                       });
                     },
                   ),
+                  const SizedBox(height: 16),
+                  // Availability Toggle
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              isAvailable ? Icons.check_circle : Icons.cancel,
+                              color: isAvailable ? Colors.green : Colors.red,
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Room Availability",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  isAvailable ? "Available for tenants" : "Under maintenance",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: isAvailable ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    isAvailable = true;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: isAvailable ? Colors.green : Colors.transparent,
+                                  ),
+                                  child: Text(
+                                    "Available",
+                                    style: TextStyle(
+                                      color: isAvailable ? Colors.white : Colors.grey,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    isAvailable = false;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: !isAvailable ? Colors.red : Colors.transparent,
+                                  ),
+                                  child: Text(
+                                    "Unavailable",
+                                    style: TextStyle(
+                                      color: !isAvailable ? Colors.white : Colors.grey,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -199,7 +298,7 @@ class _EditRoomScreenState extends State<EditRoomScreen> {
                     underNotice: widget.room.underNotice,
                     rentDue: widget.room.rentDue,
                     activeTickets: widget.room.activeTickets,
-                    status: widget.room.status,
+                    status: isAvailable ? (widget.room.occupiedBeds >= totalBeds ? 'Full' : 'Available') : 'Unavailable',
                   );
                   
                   context.read<DataProvider>().updateRoom(updatedRoom);

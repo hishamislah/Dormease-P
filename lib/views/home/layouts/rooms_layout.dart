@@ -167,11 +167,16 @@ class RoomCard extends StatelessWidget {
                 const Spacer(),
                 Container(
                     decoration: BoxDecoration(
-                        color: room.availableBeds > 0 ? Colors.green : Colors.red,
+                        color: room.status == 'Unavailable' 
+                            ? Colors.orange 
+                            : (room.availableBeds > 0 ? Colors.green : Colors.red),
                         borderRadius: BorderRadius.circular(8)),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                      child: Text(room.availableBeds > 0 ? LocaleKeys.available.tr() : LocaleKeys.full.tr(),
+                      child: Text(
+                          room.status == 'Unavailable' 
+                              ? 'Unavailable' 
+                              : (room.availableBeds > 0 ? LocaleKeys.available.tr() : LocaleKeys.full.tr()),
                           style: const TextStyle(color: Colors.white)),
                     )),
                 const SizedBox(width: 8),

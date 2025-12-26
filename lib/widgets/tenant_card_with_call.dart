@@ -5,14 +5,12 @@ class TenantCardWithCall extends StatelessWidget {
   final String name;
   final String roomNumber;
   final String phone;
-  final String email;
 
   const TenantCardWithCall({
     Key? key,
     required this.name,
     required this.roomNumber,
     required this.phone,
-    required this.email,
   }) : super(key: key);
 
   Future<void> _makePhoneCall(String phoneNumber) async {
@@ -64,14 +62,6 @@ class TenantCardWithCall extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     phone,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    email,
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,

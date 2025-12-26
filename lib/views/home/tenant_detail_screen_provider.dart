@@ -108,7 +108,6 @@ class TenantDetailScreenProvider extends StatelessWidget {
                       ),
                       Text("Room ${tenant.roomNumber}"),
                       Text(tenant.phone),
-                      Text(tenant.email),
                       if (tenant.emergencyContact.isNotEmpty)
                         Text("Emergency: ${tenant.emergencyContact}"),
                       if (tenant.description.isNotEmpty)

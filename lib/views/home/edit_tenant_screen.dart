@@ -55,7 +55,6 @@ class _EditTenantScreenState extends State<EditTenantScreen> {
       id: widget.tenant.id,
       name: nameController.text,
       phone: phoneController.text,
-      email: widget.tenant.email,
       emergencyContact: emergencyContactController.text,
       description: descriptionController.text,
       roomNumber: roomController.text,

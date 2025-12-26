@@ -2,7 +2,6 @@ class Tenant {
   final String id;
   final String name;
   final String phone;
-  final String email;
   final String emergencyContact;
   final String description;
   final String roomNumber;
@@ -21,7 +20,6 @@ class Tenant {
     required this.id,
     required this.name,
     required this.phone,
-    required this.email,
     this.emergencyContact = '',
     this.description = '',
     required this.roomNumber,

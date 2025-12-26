@@ -119,7 +119,6 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
                       ),
                       Text("Room ${widget.tenant.roomNumber}"),
                       Text(widget.tenant.phone),
-                      Text(widget.tenant.email),
                       if (widget.tenant.emergencyContact.isNotEmpty)
                         Text("Emergency: ${widget.tenant.emergencyContact}"),
                       if (widget.tenant.description.isNotEmpty)

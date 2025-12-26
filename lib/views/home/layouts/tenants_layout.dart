@@ -150,7 +150,6 @@ class TenantCard extends StatelessWidget {
             Text("Name: ${tenant.name}"),
             Text("Room: ${tenant.roomNumber}"),
             Text("Phone: ${tenant.phone}"),
-            Text("Email: ${tenant.email}"),
             Text(
                 "Joined: ${tenant.joinedDate.day}-${tenant.joinedDate.month}-${tenant.joinedDate.year}"),
             Text("Monthly Rent: ₹${tenant.monthlyRent.toStringAsFixed(0)}"),
