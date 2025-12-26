@@ -2,6 +2,12 @@
 
 Hostel and PG management app
 
+
+
+RUN IOS
+
+flutter run -d 00008130-000160440E8B803A
+ S
 ## Getting Started
 
 - This is a Hostel and PG management cross-platform mobile application, developed in flutter.

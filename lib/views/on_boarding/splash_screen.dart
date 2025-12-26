@@ -5,7 +5,6 @@ import 'package:dormease/views/home/home_screen.dart';
 import 'package:dormease/views/on_boarding/on_boarding.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,46 +17,53 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToOnboarding();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigateToOnboarding();
+    });
   }
   
   Future<void> _navigateToOnboarding() async {
-    await Future.delayed(const Duration(seconds: 2));
-    
-    if (!mounted) return;
-    
-    final prefs = await SharedPreferences.getInstance();
-    final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    
     try {
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (!mounted) return;
+      
+      SharedPreferences? prefs;
+      try {
+        prefs = await SharedPreferences.getInstance();
+      } catch (e) {
+        debugPrint('SharedPreferences error: $e');
+      }
+      
+      final bool isLoggedIn = prefs?.getBool('isLoggedIn') ?? false;
+      
       // Check if user is already logged in
       if (isLoggedIn) {
-        final authService = SupabaseAuthService();
-        
-        // Check if user is authenticated with Supabase
-        if (authService.isSignedIn()) {
-          // Check if they have completed business info
-          bool hasBusinessInfo = await authService.hasCompletedBusinessInfo();
+        try {
+          final authService = SupabaseAuthService();
           
-          if (hasBusinessInfo) {
-            // User has logged in before, go directly to home screen
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false
-            );
-            return;
+          // Check if user is authenticated with Supabase
+          if (authService.isSignedIn()) {
+            // Check if they have completed business info
+            bool hasBusinessInfo = await authService.hasCompletedBusinessInfo();
+            
+            if (hasBusinessInfo && mounted) {
+              // User has logged in before, go directly to home screen
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+                (route) => false
+              );
+              return;
+            }
           }
+        } catch (e) {
+          debugPrint('Auth check error: $e');
         }
-        
-        // No valid profile, show onboarding
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const OnBoarding()),
-          (route) => false
-        );
-      } else {
-        // First time user, show onboarding
+      }
+      
+      // First time user or error, show onboarding
+      if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const OnBoarding()),
@@ -67,11 +73,13 @@ class _SplashScreenState extends State<SplashScreen> {
     } catch (e) {
       debugPrint('Navigation error: $e');
       // Fallback to onboarding on error
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const OnBoarding()),
-        (route) => false
-      );
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const OnBoarding()),
+          (route) => false
+        );
+      }
     }
   }
 
