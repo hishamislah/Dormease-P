@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'providers/user_provider.dart';
 import 'providers/data_provider.dart';
 import 'views/on_boarding/splash_screen.dart';
+import 'translations/codegen_loader.g.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
   
   try {
     await Supabase.initialize(
@@ -18,7 +21,15 @@ void main() async {
     debugPrint('Supabase init error: $e');
   }
   
-  runApp(DormEase());
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('en')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('en'),
+      assetLoader: const CodegenLoader(),
+      child: DormEase(),
+    ),
+  );
 }
 
 class DormEase extends StatelessWidget {
@@ -32,6 +43,9 @@ class DormEase extends StatelessWidget {
       child: MaterialApp(
         title: 'DormEase',
         debugShowCheckedModeBanner: false,
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
         home: const SplashScreen(),
       ),
     );
