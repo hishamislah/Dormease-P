@@ -24,7 +24,7 @@
     "validCityName": "Please enter a valid city name",
     "stateUT": "State",
     "country": "Country",
-    "continuee": "Continue",
+    "continueButton": "Continue",
     "submit": "Submit",
     "dashboard": "Dashboard",
     "rooms": "Rooms",

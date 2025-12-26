@@ -5,88 +5,87 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SupabaseAuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
   
-  // Key for storing current user profile ID
-  static const String currentProfileKey = 'current_profile_id';
-
-  // Get or create a user profile
-  Future<String> createUserProfile(String profileEmail) async {
+  // Sign in with email and password using Supabase Auth
+  Future<User> signInWithPassword(String email, String password) async {
     try {
-      // Check if profile already exists for this email
-      final existingProfile = await _supabase
-          .from('profiles')
-          .select('profile_id')
-          .eq('email', profileEmail)
-          .maybeSingle();
+      final response = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
       
-      if (existingProfile != null) {
-        // Save current profile ID
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(currentProfileKey, existingProfile['profile_id']);
-        return existingProfile['profile_id'];
+      if (response.user == null) {
+        throw Exception('Login failed: No user returned');
       }
       
-      // Generate a unique profile ID
-      String profileId = DateTime.now().millisecondsSinceEpoch.toString();
-      
-      // Create profile document
-      await _supabase.from('profiles').insert({
-        'profile_id': profileId,
-        'email': profileEmail,
-        'has_completed_business_info': false,
-      });
-      
-      // Save current profile ID
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(currentProfileKey, profileId);
-      
-      return profileId;
+      return response.user!;
     } catch (e) {
-      debugPrint('Error creating user profile: $e');
+      debugPrint('Error signing in: $e');
       rethrow;
     }
   }
   
-  // Find profile by email
-  Future<String?> findProfileByEmail(String email) async {
+  // Sign up with email and password using Supabase Auth
+  Future<User> signUpWithPassword(String email, String password, {Map<String, dynamic>? metadata}) async {
+    try {
+      final response = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: metadata,
+      );
+      
+      if (response.user == null) {
+        throw Exception('Sign up failed: No user returned');
+      }
+      
+      return response.user!;
+    } catch (e) {
+      debugPrint('Error signing up: $e');
+      rethrow;
+    }
+  }
+  
+  // Get current user
+  User? getCurrentUser() {
+    return _supabase.auth.currentUser;
+  }
+  
+  // Get current user ID
+  String? getCurrentUserId() {
+    return _supabase.auth.currentUser?.id;
+  }
+  
+  // Get current profile ID (from profiles table)
+  Future<String?> getCurrentProfileId() async {
+    final userId = getCurrentUserId();
+    if (userId == null) return null;
+    
     try {
       final result = await _supabase
           .from('profiles')
           .select('profile_id')
-          .eq('email', email)
+          .eq('user_id', userId)
           .maybeSingle();
       
       return result?['profile_id'];
     } catch (e) {
-      debugPrint('Error finding profile by email: $e');
+      debugPrint('Error getting profile ID: $e');
       return null;
     }
   }
   
-  // Get current profile ID
-  Future<String?> getCurrentProfileId() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(currentProfileKey);
-  }
-  
-  // Set current profile ID
-  Future<void> setCurrentProfileId(String profileId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(currentProfileKey, profileId);
-  }
-  
   // Check if business info is completed
   Future<bool> hasCompletedBusinessInfo() async {
-    String? profileId = await getCurrentProfileId();
-    if (profileId == null) return false;
+    final userId = getCurrentUserId();
+    if (userId == null) return false;
     
     try {
       final result = await _supabase
           .from('profiles')
           .select('has_completed_business_info')
-          .eq('profile_id', profileId)
-          .single();
+          .eq('user_id', userId)
+          .maybeSingle();
       
-      return result['has_completed_business_info'] ?? false;
+      return result?['has_completed_business_info'] ?? false;
     } catch (e) {
       debugPrint('Error checking business info: $e');
       return false;
@@ -95,19 +94,24 @@ class SupabaseAuthService {
   
   // Update business info completion status
   Future<void> setBusinessInfoCompleted(bool completed) async {
-    String? profileId = await getCurrentProfileId();
-    if (profileId == null) return;
+    final userId = getCurrentUserId();
+    if (userId == null) return;
     
     await _supabase
         .from('profiles')
         .update({'has_completed_business_info': completed})
-        .eq('profile_id', profileId);
+        .eq('user_id', userId);
   }
   
   // Sign out
   Future<void> signOut() async {
+    await _supabase.auth.signOut();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(currentProfileKey);
     await prefs.setBool('isLoggedIn', false);
+  }
+  
+  // Check if user is currently signed in
+  bool isSignedIn() {
+    return _supabase.auth.currentUser != null;
   }
 }

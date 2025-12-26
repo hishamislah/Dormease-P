@@ -78,7 +78,6 @@ class _LoginState extends State<Login> {
                         setState(() { emailValid = false; });
                         return;
                       }
-                      // Accept any password as long as it's not empty
                       if (passwordController.text.isEmpty) {
                         setState(() { passwordValid = false; });
                         return;
@@ -88,9 +87,10 @@ class _LoginState extends State<Login> {
                       
                       try {
                         String email = emailController.text.trim();
+                        String password = passwordController.text.trim();
                         
-                        // Create or get profile for this user email
-                        String profileId = await _authService.createUserProfile(email);
+                        // Sign in using Supabase Auth
+                        await _authService.signInWithPassword(email, password);
                         
                         // Save login status
                         final prefs = await SharedPreferences.getInstance();

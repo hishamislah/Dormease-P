@@ -199,7 +199,7 @@ class _BusinessDetailsState extends State<BusinessDetails> {
           right: 16,
           bottom: 16,
           child: ExpandedButton(
-              label: LocaleKeys.continuee.tr(),
+              label: LocaleKeys.continueButton.tr(),
               onPressed: () async {
                 if (!nameValid || !addressValid || !cityValid || !stateValid || !countryValid) {
                   return;
