@@ -2,6 +2,7 @@ import 'package:dormease/translations/locale_keys.g.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:dormease/services/export_service.dart';
+import 'reset_password_screen.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -26,22 +27,23 @@ class _SettingsState extends State<Settings> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildSettingsSection(
-              "Notifications",
-              [
-                _buildSwitchTile(
-                  "Push Notifications",
-                  "Receive notifications for rent reminders and tickets",
-                  notificationsEnabled,
-                  Icons.notifications,
-                  (value) {
-                    setState(() {
-                      notificationsEnabled = value;
-                    });
-                  },
-                ),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildSettingsSection(
+                "Notifications",
+                [
+                  _buildSwitchTile(
+                    "Push Notifications",
+                    "Receive notifications for rent reminders and tickets",
+                    notificationsEnabled,
+                    Icons.notifications,
+                    (value) {
+                      setState(() {
+                        notificationsEnabled = value;
+                      });
+                    },
+                  ),
               ],
             ),
             const SizedBox(height: 16),
@@ -104,6 +106,25 @@ class _SettingsState extends State<Settings> {
             ),
             const SizedBox(height: 16),
             _buildSettingsSection(
+              "Security",
+              [
+                _buildActionTile(
+                  "Reset Password",
+                  "Change your account password",
+                  Icons.lock_reset,
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ResetPasswordScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildSettingsSection(
               "About",
               [
                 _buildInfoTile("Version", "1.0.0", Icons.info),
@@ -123,6 +144,7 @@ class _SettingsState extends State<Settings> {
               ],
             ),
           ],
+        ),
         ),
       ),
     );
