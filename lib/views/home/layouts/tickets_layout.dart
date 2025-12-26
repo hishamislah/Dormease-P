@@ -216,114 +216,287 @@ class TicketCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Define colors based on priority and status
+    Color priorityColor = ticket.priority == 'High' 
+        ? Colors.red 
+        : ticket.priority == 'Medium' 
+            ? Colors.orange 
+            : Colors.green;
+    
+    Color statusColor = ticket.status == 'Closed' 
+        ? Colors.green 
+        : ticket.status == 'In Progress' 
+            ? Colors.blue 
+            : Colors.red;
+    
+    IconData statusIcon = ticket.status == 'Closed' 
+        ? Icons.check_circle 
+        : ticket.status == 'In Progress' 
+            ? Icons.autorenew 
+            : Icons.error_outline;
+
     return Card(
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text("# $ticketNumber",
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const Spacer(),
-                  Container(
-                      decoration: BoxDecoration(
-                          color: ticket.status == 'Closed' ? Colors.green : 
-                                 ticket.status == 'In Progress' ? Colors.orange : Colors.red,
-                          borderRadius: BorderRadius.circular(16)),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                        child: Text(ticket.status,
-                            style: const TextStyle(color: Colors.white)),
-                      )),
-                  const SizedBox(width: 8),
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'details') {
-                        _showTicketDetails(context);
-                      } else if (value == 'status') {
-                        _updateTicketStatus(context);
-                      } else if (value == 'priority') {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Priority update functionality coming soon!"),
-                            backgroundColor: Colors.blue,
-                          ),
-                        );
-                      } else if (value == 'delete') {
-                        _showDeleteConfirmation(context);
-                      }
-                    },
-                    itemBuilder: (BuildContext context) {
-                      return [
-                        const PopupMenuItem<String>(
-                          value: 'details',
-                          child: Row(
-                            children: [
-                              Icon(Icons.info_outline),
-                              SizedBox(width: 8),
-                              Text('View Details'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'status',
-                          child: Row(
-                            children: [
-                              Icon(Icons.update),
-                              SizedBox(width: 8),
-                              Text('Update Status'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'priority',
-                          child: Row(
-                            children: [
-                              Icon(Icons.priority_high),
-                              SizedBox(width: 8),
-                              Text('Set Priority'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Delete Ticket', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ),
-                      ];
-                    },
-                  )
-                ],
+      color: Colors.white,
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: priorityColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          // Header with ticket number and status
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
               ),
-              Text("${ticket.date.day}-${ticket.date.month}-${ticket.date.year}"),
-              Row(
-                children: [
-                  const Text("Raised by: "),
-                  Text(ticket.raisedBy,
-                      style: const TextStyle(
-                          color: Colors.amber, fontWeight: FontWeight.w500)),
-                ],
-              ),
-              Divider(color: Colors.grey[100]),
-              Text(
-                ticket.title,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                ticket.description,
-                style: const TextStyle(color: Colors.grey),
-              )
-            ],
+            ),
+            child: Row(
+              children: [
+                // Ticket icon with number
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.amber,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.confirmation_number, color: Colors.white, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        "Ticket #$ticketNumber",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Priority badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: priorityColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: priorityColor.withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.flag, color: priorityColor, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        ticket.priority,
+                        style: TextStyle(
+                          color: priorityColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                // Status badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, color: Colors.white, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        ticket.status,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'details') {
+                      _showTicketDetails(context);
+                    } else if (value == 'status') {
+                      _updateTicketStatus(context);
+                    } else if (value == 'priority') {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Priority update functionality coming soon!"),
+                          backgroundColor: Colors.blue,
+                        ),
+                      );
+                    } else if (value == 'delete') {
+                      _showDeleteConfirmation(context);
+                    }
+                  },
+                  itemBuilder: (BuildContext context) {
+                    return [
+                      const PopupMenuItem<String>(
+                        value: 'details',
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline),
+                            SizedBox(width: 8),
+                            Text('View Details'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'status',
+                        child: Row(
+                          children: [
+                            Icon(Icons.update),
+                            SizedBox(width: 8),
+                            Text('Update Status'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'priority',
+                        child: Row(
+                          children: [
+                            Icon(Icons.priority_high),
+                            SizedBox(width: 8),
+                            Text('Set Priority'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Delete Ticket', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ];
+                  },
+                ),
+              ],
+            ),
           ),
-        ));
+          // Content section
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Text(
+                  ticket.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Description
+                Text(
+                  ticket.description,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                // Footer with meta info
+                Row(
+                  children: [
+                    // Room number
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.door_back_door, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Room ${ticket.roomNumber}",
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Raised by
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.person, size: 14, color: Colors.amber),
+                          const SizedBox(width: 4),
+                          Text(
+                            ticket.raisedBy,
+                            style: const TextStyle(
+                              color: Colors.amber,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    // Date
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[500]),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${ticket.date.day}-${ticket.date.month}-${ticket.date.year}",
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
