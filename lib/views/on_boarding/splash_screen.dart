@@ -32,29 +32,21 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       // Check if user is already logged in
       if (isLoggedIn) {
-        // Check if we have a current profile
-        String? profileId = prefs.getString(SupabaseAuthService.currentProfileKey);
+        final authService = SupabaseAuthService();
         
-        if (profileId != null) {
-          // Verify the profile exists
-          try {
-            final result = await Supabase.instance.client
-                .from('profiles')
-                .select('profile_id')
-                .eq('profile_id', profileId)
-                .maybeSingle();
-            
-            if (result != null) {
-              // User has logged in before, go directly to home screen
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const HomeScreen()),
-                (route) => false
-              );
-              return;
-            }
-          } catch (e) {
-            debugPrint('Error checking profile: $e');
+        // Check if user is authenticated with Supabase
+        if (authService.isSignedIn()) {
+          // Check if they have completed business info
+          bool hasBusinessInfo = await authService.hasCompletedBusinessInfo();
+          
+          if (hasBusinessInfo) {
+            // User has logged in before, go directly to home screen
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+              (route) => false
+            );
+            return;
           }
         }
         

@@ -24,7 +24,7 @@ class _AddRoomScreenState extends State<AddRoomScreen> {
   var isLoading = false;
   
   String selectedRoomType = 'Single';
-  List<String> roomTypes = ['Single', 'Double', 'Triple', 'Quad'];
+  List<String> roomTypes = ['Single', '2 Sharing', '3 Sharing', '4 Sharing'];
   
   String selectedBathroomType = 'Non-attached';
   List<String> bathroomTypes = ['Attached', 'Non-attached'];

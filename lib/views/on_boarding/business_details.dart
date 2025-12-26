@@ -210,10 +210,11 @@ class _BusinessDetailsState extends State<BusinessDetails> {
                 });
                 
                 try {
+                  final authService = SupabaseAuthService();
                   final prefs = await SharedPreferences.getInstance();
-                  String? profileId = prefs.getString(SupabaseAuthService.currentProfileKey);
                   
-                  if (profileId != null) {
+                  // Check if user is signed in
+                  if (authService.isSignedIn()) {
                     // Save business info to Supabase
                     try {
                       final businessInfoService = SupabaseBusinessInfoService();
