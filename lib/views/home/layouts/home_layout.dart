@@ -1,6 +1,8 @@
 import 'package:dormease/translations/locale_keys.g.dart';
 import 'package:dormease/providers/data_provider.dart';
 import 'package:dormease/models/tenant.dart';
+import 'package:dormease/views/home/tenant_detail_screen.dart';
+import 'package:dormease/services/payment_service.dart' as payment_service;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -224,13 +226,28 @@ class _UpcomingPaymentsState extends State<UpcomingPayments> {
         final filteredTenants = tenants.where((tenant) {
           if (tenant.rentDueDate == null) return false;
           
+          // Get payment history for this tenant
+          final paymentHistory = payment_service.PaymentService.generatePaymentHistory(tenant);
+          final dueDateMonth = DateTime(tenant.rentDueDate!.year, tenant.rentDueDate!.month, 1);
+          
+          // Find payment for the month of the due date
+          final dueMonthPayment = paymentHistory.where((p) => 
+            p.monthYear.year == dueDateMonth.year && 
+            p.monthYear.month == dueDateMonth.month
+          ).firstOrNull;
+          
+          // If payment exists and is paid, don't show in either list
+          if (dueMonthPayment != null && dueMonthPayment.status == payment_service.PaymentStatus.paid) {
+            return false;
+          }
+          
           if (showUpcoming) {
-            // Upcoming: future dates within next 7 days
+            // Upcoming: future dates within next 7 days (and not paid)
             final daysUntilDue = tenant.rentDueDate!.difference(now).inDays;
             return daysUntilDue >= 0 && daysUntilDue <= 7;
           } else {
-            // Overdue: past dates AND rent is still due (not paid)
-            return tenant.rentDueDate!.isBefore(now) && tenant.rentDue;
+            // Overdue: past dates (and not paid)
+            return tenant.rentDueDate!.isBefore(now);
           }
         }).toList();
 
@@ -337,16 +354,25 @@ class _UpcomingPaymentsState extends State<UpcomingPayments> {
                   badgeText = daysOverdue == 0 ? 'TODAY' : '$daysOverdue\nDAYS';
                 }
                 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    border: Border.all(width: 0.5, color: badgeColor),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TenantDetailScreen(tenant: tenant),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      border: Border.all(width: 0.5, color: badgeColor),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
                       children: [
                         Container(
                           width: 50,
@@ -414,6 +440,7 @@ class _UpcomingPaymentsState extends State<UpcomingPayments> {
                       ],
                     ),
                   ),
+                ),
                 );
               }).toList(),
           ],
