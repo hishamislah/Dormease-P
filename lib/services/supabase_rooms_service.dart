@@ -6,36 +6,63 @@ class SupabaseRoomsService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final SupabaseAuthService _authService = SupabaseAuthService();
 
-  // Stream of rooms for current profile
+  // Stream of rooms for current organization
   Stream<List<Map<String, dynamic>>> roomsStream() async* {
+    String? organizationId = await _authService.getCurrentOrganizationId();
     String? profileId = await _authService.getCurrentProfileId();
-    if (profileId == null) {
+    
+    if (organizationId == null && profileId == null) {
       yield [];
       return;
     }
 
-    yield* _supabase
-        .from('rooms')
-        .stream(primaryKey: ['id'])
-        .eq('profile_id', profileId)
-        .map((data) => data.map((item) {
-              return {
-                'id': item['id'].toString(),
-                ...item,
-              };
-            }).toList());
+    // Use organization_id if available, fallback to profile_id for backward compatibility
+    if (organizationId != null) {
+      yield* _supabase
+          .from('rooms')
+          .stream(primaryKey: ['id'])
+          .eq('organization_id', organizationId)
+          .map((data) => data.map((item) {
+                return {
+                  'id': item['id'].toString(),
+                  ...item,
+                };
+              }).toList());
+    } else {
+      yield* _supabase
+          .from('rooms')
+          .stream(primaryKey: ['id'])
+          .eq('profile_id', profileId!)
+          .map((data) => data.map((item) {
+                return {
+                  'id': item['id'].toString(),
+                  ...item,
+                };
+              }).toList());
+    }
   }
 
   // Fetch rooms
   Future<List<Map<String, dynamic>>> fetchRooms() async {
+    String? organizationId = await _authService.getCurrentOrganizationId();
     String? profileId = await _authService.getCurrentProfileId();
-    if (profileId == null) return [];
+    
+    if (organizationId == null && profileId == null) return [];
 
     try {
-      final rooms = await _supabase
-          .from('rooms')
-          .select('*')
-          .eq('profile_id', profileId);
+      List<Map<String, dynamic>> rooms;
+      
+      if (organizationId != null) {
+        rooms = await _supabase
+            .from('rooms')
+            .select('*')
+            .eq('organization_id', organizationId);
+      } else {
+        rooms = await _supabase
+            .from('rooms')
+            .select('*')
+            .eq('profile_id', profileId!);
+      }
 
       return rooms.map((room) {
         return {
@@ -51,11 +78,14 @@ class SupabaseRoomsService {
 
   // Add room
   Future<void> addRoom(Map<String, dynamic> room) async {
+    String? organizationId = await _authService.getCurrentOrganizationId();
     String? profileId = await _authService.getCurrentProfileId();
-    if (profileId == null) return;
+    
+    if (organizationId == null && profileId == null) return;
 
     try {
       room['profile_id'] = profileId;
+      room['organization_id'] = organizationId;
       
       // Convert camelCase to snake_case
       final mappedRoom = _mapToSnakeCase(room);

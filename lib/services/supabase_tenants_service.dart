@@ -7,37 +7,63 @@ class SupabaseTenantsService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final SupabaseAuthService _authService = SupabaseAuthService();
 
-  // Stream of tenants for current profile
+  // Stream of tenants for current organization
   Stream<List<Map<String, dynamic>>> tenantsStream() async* {
+    String? organizationId = await _authService.getCurrentOrganizationId();
     String? profileId = await _authService.getCurrentProfileId();
-    if (profileId == null) {
+    
+    if (organizationId == null && profileId == null) {
       yield [];
       return;
     }
 
-    yield* _supabase
-        .from('tenants')
-        .stream(primaryKey: ['id'])
-        .eq('profile_id', profileId)
-        .map((data) => data.map((item) {
-              // Convert UUID to string for compatibility
-              return {
-                'id': item['id'].toString(),
-                ...item,
-              };
-            }).toList());
+    // Use organization_id if available, fallback to profile_id for backward compatibility
+    if (organizationId != null) {
+      yield* _supabase
+          .from('tenants')
+          .stream(primaryKey: ['id'])
+          .eq('organization_id', organizationId)
+          .map((data) => data.map((item) {
+                return {
+                  'id': item['id'].toString(),
+                  ...item,
+                };
+              }).toList());
+    } else {
+      yield* _supabase
+          .from('tenants')
+          .stream(primaryKey: ['id'])
+          .eq('profile_id', profileId!)
+          .map((data) => data.map((item) {
+                return {
+                  'id': item['id'].toString(),
+                  ...item,
+                };
+              }).toList());
+    }
   }
 
   // Fetch tenants with payment history
   Future<List<Map<String, dynamic>>> fetchTenants() async {
+    String? organizationId = await _authService.getCurrentOrganizationId();
     String? profileId = await _authService.getCurrentProfileId();
-    if (profileId == null) return [];
+    
+    if (organizationId == null && profileId == null) return [];
 
     try {
-      final tenants = await _supabase
-          .from('tenants')
-          .select('*')
-          .eq('profile_id', profileId);
+      List<Map<String, dynamic>> tenants;
+      
+      if (organizationId != null) {
+        tenants = await _supabase
+            .from('tenants')
+            .select('*')
+            .eq('organization_id', organizationId);
+      } else {
+        tenants = await _supabase
+            .from('tenants')
+            .select('*')
+            .eq('profile_id', profileId!);
+      }
 
       // Fetch payment history for each tenant
       List<Map<String, dynamic>> tenantsWithPayments = [];
@@ -63,11 +89,14 @@ class SupabaseTenantsService {
 
   // Add tenant
   Future<void> addTenant(Map<String, dynamic> tenant) async {
+    String? organizationId = await _authService.getCurrentOrganizationId();
     String? profileId = await _authService.getCurrentProfileId();
-    if (profileId == null) return;
+    
+    if (organizationId == null && profileId == null) return;
 
     try {
       tenant['profile_id'] = profileId;
+      tenant['organization_id'] = organizationId;
       
       // Convert DateTime to ISO string for Supabase
       if (tenant['joinedDate'] != null) {
@@ -137,8 +166,9 @@ class SupabaseTenantsService {
 
   // Mark rent as paid
   Future<void> markRentPaid(String tenantId, String month, [String paymentMethod = 'Cash']) async {
+    String? organizationId = await _authService.getCurrentOrganizationId();
     String? profileId = await _authService.getCurrentProfileId();
-    if (profileId == null) return;
+    if (organizationId == null && profileId == null) return;
 
     try {
       // Get tenant data
@@ -173,6 +203,7 @@ class SupabaseTenantsService {
         await _supabase.from('payment_history').insert({
           'tenant_id': tenantId,
           'profile_id': profileId,
+          'organization_id': organizationId,
           'month': month,
           'amount': monthlyRent,
           'status': 'Paid',

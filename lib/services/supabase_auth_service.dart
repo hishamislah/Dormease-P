@@ -102,6 +102,32 @@ class SupabaseAuthService {
         .update({'has_completed_business_info': completed})
         .eq('user_id', userId);
   }
+
+  // Get current organization ID
+  Future<String?> getCurrentOrganizationId() async {
+    final userId = getCurrentUserId();
+    if (userId == null) return null;
+
+    try {
+      final membership = await _supabase
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', userId)
+          .limit(1)
+          .maybeSingle();
+
+      return membership?['organization_id']?.toString();
+    } catch (e) {
+      debugPrint('Error getting organization ID: $e');
+      return null;
+    }
+  }
+
+  // Check if user has an organization
+  Future<bool> hasOrganization() async {
+    final orgId = await getCurrentOrganizationId();
+    return orgId != null;
+  }
   
   // Sign out
   Future<void> signOut() async {

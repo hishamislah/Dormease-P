@@ -6,37 +6,65 @@ class SupabaseTicketsService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final SupabaseAuthService _authService = SupabaseAuthService();
 
-  // Stream of tickets for current profile
+  // Stream of tickets for current organization
   Stream<List<Map<String, dynamic>>> ticketsStream() async* {
+    String? organizationId = await _authService.getCurrentOrganizationId();
     String? profileId = await _authService.getCurrentProfileId();
-    if (profileId == null) {
+    
+    if (organizationId == null && profileId == null) {
       yield [];
       return;
     }
 
-    yield* _supabase
-        .from('tickets')
-        .stream(primaryKey: ['id'])
-        .eq('profile_id', profileId)
-        .map((data) => data.map((item) {
-              return {
-                'id': item['id'].toString(),
-                ...item,
-              };
-            }).toList());
+    // Use organization_id if available, fallback to profile_id for backward compatibility
+    if (organizationId != null) {
+      yield* _supabase
+          .from('tickets')
+          .stream(primaryKey: ['id'])
+          .eq('organization_id', organizationId)
+          .map((data) => data.map((item) {
+                return {
+                  'id': item['id'].toString(),
+                  ...item,
+                };
+              }).toList());
+    } else {
+      yield* _supabase
+          .from('tickets')
+          .stream(primaryKey: ['id'])
+          .eq('profile_id', profileId!)
+          .map((data) => data.map((item) {
+                return {
+                  'id': item['id'].toString(),
+                  ...item,
+                };
+              }).toList());
+    }
   }
 
   // Fetch tickets
   Future<List<Map<String, dynamic>>> fetchTickets() async {
+    String? organizationId = await _authService.getCurrentOrganizationId();
     String? profileId = await _authService.getCurrentProfileId();
-    if (profileId == null) return [];
+    
+    if (organizationId == null && profileId == null) return [];
 
     try {
-      final tickets = await _supabase
-          .from('tickets')
-          .select('*')
-          .eq('profile_id', profileId)
-          .order('date', ascending: false);
+      List<Map<String, dynamic>> tickets;
+      
+      if (organizationId != null) {
+        tickets = await _supabase
+            .from('tickets')
+            .select('*')
+            .eq('organization_id', organizationId)
+            .order('date', ascending: false);
+      } else {
+        tickets = await _supabase
+            .from('tickets')
+            .select('*')
+            .eq('profile_id', profileId!)
+            .order('date', ascending: false);
+      }
 
       return tickets.map((ticket) {
         return {
@@ -52,11 +80,14 @@ class SupabaseTicketsService {
 
   // Add ticket
   Future<void> addTicket(Map<String, dynamic> ticket) async {
+    String? organizationId = await _authService.getCurrentOrganizationId();
     String? profileId = await _authService.getCurrentProfileId();
-    if (profileId == null) return;
+    
+    if (organizationId == null && profileId == null) return;
 
     try {
       ticket['profile_id'] = profileId;
+      ticket['organization_id'] = organizationId;
       
       // Convert DateTime to ISO string
       if (ticket['date'] != null && ticket['date'] is DateTime) {
