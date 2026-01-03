@@ -1,9 +1,12 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:dormease/services/supabase_auth_service.dart';
+import 'package:dormease/providers/data_provider.dart';
 import 'package:dormease/views/home/home_screen.dart';
 import 'package:dormease/views/on_boarding/on_boarding.dart';
+import 'package:dormease/views/admin/admin_dashboard.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -42,12 +45,26 @@ class _SplashScreenState extends State<SplashScreen> {
         try {
           final authService = SupabaseAuthService();
           
+          // Check if admin user (admin doesn't require Supabase auth)
+          final isAdmin = prefs?.getBool('isAdmin') ?? false;
+          if (isAdmin && mounted) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminDashboard()),
+              (route) => false
+            );
+            return;
+          }
+          
           // Check if user is authenticated with Supabase
           if (authService.isSignedIn()) {
             // Check if they have completed business info
             bool hasBusinessInfo = await authService.hasCompletedBusinessInfo();
             
             if (hasBusinessInfo && mounted) {
+              // Reconnect data provider to fetch data for this user's organization
+              await context.read<DataProvider>().reconnect();
+              
               // User has logged in before, go directly to home screen
               Navigator.pushAndRemoveUntil(
                 context,

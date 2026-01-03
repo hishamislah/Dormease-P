@@ -27,10 +27,20 @@ class UserProvider extends ChangeNotifier {
         final businessInfo = await _businessInfoService.fetchBusinessInfo();
         
         if (userSupabaseData != null) {
-          userData.addAll(userSupabaseData);
+          // Only add non-null values to preserve defaults
+          userSupabaseData.forEach((key, value) {
+            if (value != null) {
+              userData[key] = value;
+            }
+          });
         }
         if (businessInfo != null) {
-          userData.addAll(businessInfo);
+          // Only add non-null values to preserve defaults
+          businessInfo.forEach((key, value) {
+            if (value != null) {
+              userData[key] = value;
+            }
+          });
         }
       }
       notifyListeners();

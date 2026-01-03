@@ -2,9 +2,13 @@
 
 import 'package:dormease/helper/ui_elements.dart';
 import 'package:dormease/services/supabase_auth_service.dart';
+import 'package:dormease/services/supabase_admin_service.dart';
+import 'package:dormease/providers/data_provider.dart';
 import 'package:dormease/views/home/home_screen.dart';
 import 'package:dormease/views/on_boarding/business_details.dart';
+import 'package:dormease/views/admin/admin_dashboard.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Login extends StatefulWidget {
@@ -89,12 +93,30 @@ class _LoginState extends State<Login> {
                         String email = emailController.text.trim();
                         String password = passwordController.text.trim();
                         
-                        // Sign in using Supabase Auth
+                        // Check if admin credentials (super admin bypasses Supabase auth)
+                        if (SupabaseAdminService.checkAdminCredentials(email, password)) {
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool('isLoggedIn', true);
+                          await prefs.setBool('isAdmin', true);
+                          
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const AdminDashboard()),
+                            (route) => false,
+                          );
+                          return;
+                        }
+                        
+                        // Regular user sign in using Supabase Auth
                         await _authService.signInWithPassword(email, password);
                         
                         // Save login status
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.setBool('isLoggedIn', true);
+                        await prefs.setBool('isAdmin', false);
+                        
+                        // Reconnect data provider to fetch data for this user's organization
+                        await context.read<DataProvider>().reconnect();
                         
                         bool hasBusinessInfo = await _authService.hasCompletedBusinessInfo();
                         

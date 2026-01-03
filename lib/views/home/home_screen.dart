@@ -53,19 +53,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundColor: Colors.transparent,
                 child: ClipOval(
                     child: context.watch<UserProvider>().userData['logoUrl'] ==
-                            "null"
+                            "null" || context.watch<UserProvider>().userData['logoUrl'] == null
                         ? Image.asset('assets/images/logo.png')
                         : Image.file(File(context
                             .watch<UserProvider>()
                             .userData['logoUrl'])))),
             const SizedBox(width: 16),
             Text(
-                context.watch<UserProvider>().userData['businessName'].length <=
+                (context.watch<UserProvider>().userData['businessName'] ?? 'DormEase').toString().length <=
                         20
-                    ? context.watch<UserProvider>().userData['businessName']
-                    : context
-                        .watch<UserProvider>()
-                        .userData['businessName']
+                    ? (context.watch<UserProvider>().userData['businessName'] ?? 'DormEase').toString()
+                    : (context.watch<UserProvider>().userData['businessName'] ?? 'DormEase')
+                        .toString()
                         .substring(0, 20)),
           ],
         ),
