@@ -5,7 +5,6 @@ import 'package:dormease/views/home/room_detail_screen.dart';
 import 'package:dormease/views/home/edit_room_screen.dart';
 import 'package:dormease/providers/data_provider.dart';
 import 'package:dormease/models/room.dart';
-import 'package:dormease/views/home/components/room_filter.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -24,20 +23,34 @@ class _RoomsLayoutState extends State<RoomsLayout> {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      RoomFilter(
-        onFilter: (value) {
-          setState(() {
-            filterText = value;
-          });
-        },
-        onAddRoom: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddRoomScreen(),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: SearchBox(
+                  controller: searchController,
+                  filterText: filterText,
+                  updateFilterText: (String updatedText) {
+                    setState(() {
+                      filterText = updatedText;
+                    });
+                  }),
             ),
-          );
-        },
+            const SizedBox(width: 12),
+            Button(
+                label: "Add Room",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddRoomScreen(),
+                    ),
+                  );
+                },
+                isLoading: false)
+          ],
+        ),
       ),
       Expanded(
           child: Consumer<DataProvider>(

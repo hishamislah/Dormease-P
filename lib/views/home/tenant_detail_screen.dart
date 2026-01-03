@@ -356,7 +356,71 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
             IconButton(
               icon: const Icon(Icons.payment, color: Colors.blue),
               onPressed: () => _markPaymentAsPaid(payment),
+              tooltip: 'Mark as Paid',
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.undo, color: Colors.orange),
+              onPressed: () => _markPaymentAsUnpaid(payment),
+              tooltip: 'Revert Payment',
             ),
+        ],
+      ),
+    );
+  }
+
+  void _markPaymentAsUnpaid(payment_service.PaymentRecord payment) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Revert Payment'),
+        content: Text(
+          'Are you sure you want to mark ${payment.monthYearString} as unpaid?\n\nThis will remove the payment record.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                );
+                
+                await context.read<DataProvider>().markRentUnpaid(widget.tenant.id, payment.monthYearString);
+                
+                Navigator.pop(context); // Close loading
+                Navigator.pop(context); // Close dialog
+                
+                // Reload payment data
+                _loadPaymentData();
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${payment.monthYearString} payment reverted'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              } catch (e) {
+                Navigator.of(context, rootNavigator: true).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error reverting payment: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Revert'),
+          ),
         ],
       ),
     );

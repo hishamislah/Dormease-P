@@ -362,6 +362,41 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> markRentUnpaid(String tenantId, String month) async {
+    await _tenantsService.markRentUnpaid(tenantId, month);
+    
+    // Update local tenant data
+    final tenantIndex = _tenants.indexWhere((t) => t.id == tenantId);
+    if (tenantIndex != -1) {
+      final tenant = _tenants[tenantIndex];
+      
+      // Remove payment from history
+      tenant.paymentHistory.removeWhere((p) => p.month == month);
+      
+      // Update tenant with new rentDue status
+      _tenants[tenantIndex] = Tenant(
+        id: tenant.id,
+        name: tenant.name,
+        phone: tenant.phone,
+        emergencyContact: tenant.emergencyContact,
+        description: tenant.description,
+        roomNumber: tenant.roomNumber,
+        joinedDate: tenant.joinedDate,
+        monthlyRent: tenant.monthlyRent,
+        securityDeposit: tenant.securityDeposit,
+        underNotice: tenant.underNotice,
+        rentDue: true, // Mark as due since payment is reverted
+        imagePath: tenant.imagePath,
+        rentDueDate: tenant.rentDueDate,
+        leavingDate: tenant.leavingDate,
+        partialRent: tenant.partialRent,
+        paymentHistory: tenant.paymentHistory,
+      );
+      
+      notifyListeners();
+    }
+  }
+
   Future<void> deleteTenant(String id) async {
     await _tenantsService.deleteTenant(id);
     await Future.delayed(const Duration(milliseconds: 100));

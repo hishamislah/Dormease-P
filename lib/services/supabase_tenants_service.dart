@@ -229,6 +229,64 @@ class SupabaseTenantsService {
     }
   }
 
+  // Mark rent as unpaid (revert payment)
+  Future<void> markRentUnpaid(String tenantId, String month) async {
+    String? profileId = await _authService.getCurrentProfileId();
+    if (profileId == null) return;
+
+    try {
+      // Delete the payment record for this month
+      await _supabase
+          .from('payment_history')
+          .delete()
+          .eq('tenant_id', tenantId)
+          .eq('month', month);
+
+      // Get tenant data to recalculate rent_due status
+      final tenant = await _supabase
+          .from('tenants')
+          .select('*')
+          .eq('id', tenantId)
+          .single();
+
+      // Check current month and rent due date to determine if rent is due
+      final now = DateTime.now();
+      final currentMonthYear = DateFormat('MMMM yyyy').format(now);
+      
+      bool rentDue = false;
+      if (tenant['rent_due_date'] != null) {
+        final rentDueDate = DateTime.parse(tenant['rent_due_date']);
+        rentDue = now.isAfter(rentDueDate);
+        
+        // Check if current month payment still exists
+        final currentMonthPayment = await _supabase
+            .from('payment_history')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .eq('month', currentMonthYear)
+            .eq('status', 'Paid')
+            .maybeSingle();
+        
+        if (currentMonthPayment != null) {
+          rentDue = false;
+        }
+      }
+
+      // Update tenant
+      await _supabase
+          .from('tenants')
+          .update({
+            'rent_due': rentDue,
+          })
+          .eq('id', tenantId);
+
+      debugPrint('Payment marked as unpaid: $month for tenant $tenantId');
+    } catch (e) {
+      debugPrint('Error marking rent as unpaid: $e');
+      rethrow;
+    }
+  }
+
   // Fetch payment history for a tenant
   Future<List<Map<String, dynamic>>> fetchPaymentHistory(String tenantId) async {
     try {
