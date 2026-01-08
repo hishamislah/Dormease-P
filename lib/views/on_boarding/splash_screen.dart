@@ -5,6 +5,7 @@ import 'package:dormease/providers/data_provider.dart';
 import 'package:dormease/views/home/home_screen.dart';
 import 'package:dormease/views/on_boarding/on_boarding.dart';
 import 'package:dormease/views/admin/admin_dashboard.dart';
+import 'package:dormease/views/organization_paused_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,6 +59,24 @@ class _SplashScreenState extends State<SplashScreen> {
           
           // Check if user is authenticated with Supabase
           if (authService.isSignedIn()) {
+            // Check if organization is paused
+            final pausedStatus = await authService.checkOrganizationPausedStatus();
+            if (pausedStatus != null && pausedStatus['isPaused'] == true) {
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OrganizationPausedScreen(
+                      organizationName: pausedStatus['organizationName'],
+                      reason: pausedStatus['pausedReason'],
+                    ),
+                  ),
+                  (route) => false,
+                );
+                return;
+              }
+            }
+            
             // Check if they have completed business info
             bool hasBusinessInfo = await authService.hasCompletedBusinessInfo();
             

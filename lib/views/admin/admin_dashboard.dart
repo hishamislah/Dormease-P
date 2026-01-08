@@ -340,6 +340,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: org.isPaused 
+            ? BorderSide(color: Colors.orange.withOpacity(0.5), width: 2)
+            : BorderSide.none,
       ),
       child: InkWell(
         onTap: () async {
@@ -349,6 +352,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               builder: (context) => OrganizationDetailScreen(organization: org),
             ),
           );
+          // Always refresh when coming back
           _loadData();
         },
         borderRadius: BorderRadius.circular(12),
@@ -360,18 +364,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E3A5F).withOpacity(0.1),
+                  color: org.isPaused 
+                      ? Colors.orange.withOpacity(0.1)
+                      : const Color(0xFF1E3A5F).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
-                  child: Text(
-                    org.name.isNotEmpty ? org.name[0].toUpperCase() : 'H',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3A5F),
-                    ),
-                  ),
+                  child: org.isPaused
+                      ? Icon(Icons.pause_circle, size: 28, color: Colors.orange[700])
+                      : Text(
+                          org.name.isNotEmpty ? org.name[0].toUpperCase() : 'H',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E3A5F),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -408,6 +416,31 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ],
                 ),
               ),
+              if (org.isPaused) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.pause, size: 10, color: Colors.orange[800]),
+                      const SizedBox(width: 4),
+                      Text(
+                        'PAUSED',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange[800],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(

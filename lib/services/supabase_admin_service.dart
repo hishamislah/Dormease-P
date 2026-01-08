@@ -35,6 +35,22 @@ class SupabaseAdminService {
     }
   }
 
+  // Get single organization by ID
+  Future<Organization?> getOrganizationById(String orgId) async {
+    try {
+      final data = await _supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', orgId)
+          .single();
+
+      return Organization.fromJson(data);
+    } catch (e) {
+      debugPrint('Error fetching organization: $e');
+      return null;
+    }
+  }
+
   // Get organization count
   Future<int> getOrganizationCount() async {
     try {
@@ -234,6 +250,62 @@ class SupabaseAdminService {
     } catch (e) {
       debugPrint('Error deleting user: $e');
       return false;
+    }
+  }
+
+  // Pause an organization
+  Future<Map<String, dynamic>> pauseOrganization(String orgId, {String? reason}) async {
+    try {
+      debugPrint('Pausing organization: $orgId');
+      await _supabase
+          .from('organizations')
+          .update({
+            'is_paused': true,
+            'paused_reason': reason,
+            'paused_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', orgId);
+
+      debugPrint('Organization paused successfully');
+      return {
+        'success': true,
+        'message': 'Organization paused successfully',
+      };
+    } catch (e) {
+      debugPrint('Error pausing organization: $e');
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  // Resume an organization
+  Future<Map<String, dynamic>> resumeOrganization(String orgId) async {
+    try {
+      debugPrint('Resuming organization: $orgId');
+      await _supabase
+          .from('organizations')
+          .update({
+            'is_paused': false,
+            'paused_reason': null,
+            'paused_at': null,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', orgId);
+
+      debugPrint('Organization resumed successfully');
+      return {
+        'success': true,
+        'message': 'Organization resumed successfully',
+      };
+    } catch (e) {
+      debugPrint('Error resuming organization: $e');
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
     }
   }
 

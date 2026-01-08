@@ -10,6 +10,9 @@ class Organization {
   final String? state;
   final String? country;
   final String plan;
+  final bool isPaused;
+  final String? pausedReason;
+  final DateTime? pausedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -25,6 +28,9 @@ class Organization {
     this.state,
     this.country,
     this.plan = 'free',
+    this.isPaused = false,
+    this.pausedReason,
+    this.pausedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -42,6 +48,11 @@ class Organization {
       state: json['state'],
       country: json['country'],
       plan: json['plan'] ?? 'free',
+      isPaused: json['is_paused'] ?? false,
+      pausedReason: json['paused_reason'],
+      pausedAt: json['paused_at'] != null 
+          ? DateTime.parse(json['paused_at']) 
+          : null,
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at']) 
           : DateTime.now(),
@@ -64,6 +75,9 @@ class Organization {
       'state': state,
       'country': country,
       'plan': plan,
+      'is_paused': isPaused,
+      'paused_reason': pausedReason,
+      'paused_at': pausedAt?.toIso8601String(),
     };
   }
 }

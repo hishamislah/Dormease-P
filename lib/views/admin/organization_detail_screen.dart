@@ -16,20 +16,159 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
   final SupabaseAdminService _adminService = SupabaseAdminService();
   List<Map<String, dynamic>> _members = [];
   bool _isLoading = true;
+  late Organization _organization;
 
   @override
   void initState() {
     super.initState();
-    _loadMembers();
+    _organization = widget.organization;
+    _loadData();
   }
 
-  Future<void> _loadMembers() async {
+  Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final members = await _adminService.getOrganizationMembers(widget.organization.id);
+    
+    // Refresh organization from database
+    final refreshedOrg = await _adminService.getOrganizationById(_organization.id);
+    if (refreshedOrg != null) {
+      _organization = refreshedOrg;
+    }
+    
+    // Load members
+    final members = await _adminService.getOrganizationMembers(_organization.id);
+    
     setState(() {
       _members = members;
       _isLoading = false;
     });
+  }
+
+  Future<void> _togglePauseOrganization() async {
+    final isPaused = _organization.isPaused;
+    
+    if (isPaused) {
+      // Resume organization
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Resume Organization'),
+          content: Text(
+            'Are you sure you want to resume "${_organization.name}"?\n\n'
+            'Users will be able to access their accounts again.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Resume'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true) {
+        setState(() => _isLoading = true);
+        final result = await _adminService.resumeOrganization(_organization.id);
+        if (mounted) {
+          if (result['success'] == true) {
+            // Refresh organization from database
+            await _loadData();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Organization resumed successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to resume: ${result['message']}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } else {
+      // Pause organization
+      final reasonController = TextEditingController();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Pause Organization'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Are you sure you want to pause "${_organization.name}"?\n\n'
+                'Users under this organization will not be able to access their accounts.',
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                decoration: const InputDecoration(
+                  labelText: 'Reason (optional)',
+                  hintText: 'e.g., Payment pending, Maintenance',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Pause'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true) {
+        setState(() => _isLoading = true);
+        final result = await _adminService.pauseOrganization(
+          _organization.id,
+          reason: reasonController.text.isNotEmpty ? reasonController.text : null,
+        );
+        if (mounted) {
+          if (result['success'] == true) {
+            // Refresh organization from database
+            await _loadData();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Organization paused successfully!'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          } else {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to pause: ${result['message']}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    }
   }
 
   Future<void> _deleteOrganization() async {
@@ -38,7 +177,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Delete Organization'),
         content: Text(
-          'Are you sure you want to delete "${widget.organization.name}"?\n\n'
+          'Are you sure you want to delete "${_organization.name}"?\n\n'
           'This will permanently delete:\n'
           '• All rooms\n'
           '• All tenants\n'
@@ -65,7 +204,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     );
 
     if (confirmed == true) {
-      final result = await _adminService.deleteOrganization(widget.organization.id);
+      final result = await _adminService.deleteOrganization(_organization.id);
       if (mounted) {
         if (result['success'] == true) {
           final counts = result['deleted_counts'];
@@ -99,16 +238,21 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final org = widget.organization;
+    final org = _organization;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: Text(org.name),
-        backgroundColor: const Color(0xFF1E3A5F),
+        backgroundColor: org.isPaused ? Colors.orange[800] : const Color(0xFF1E3A5F),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: Icon(org.isPaused ? Icons.play_arrow : Icons.pause),
+            onPressed: _togglePauseOrganization,
+            tooltip: org.isPaused ? 'Resume Organization' : 'Pause Organization',
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: _deleteOrganization,
@@ -119,7 +263,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _loadMembers,
+              onRefresh: _loadData,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
@@ -150,18 +294,22 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                                 width: 60,
                                 height: 60,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1E3A5F).withOpacity(0.1),
+                                  color: org.isPaused 
+                                      ? Colors.orange.withOpacity(0.1)
+                                      : const Color(0xFF1E3A5F).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Center(
-                                  child: Text(
-                                    org.name.isNotEmpty ? org.name[0].toUpperCase() : 'H',
-                                    style: const TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1E3A5F),
-                                    ),
-                                  ),
+                                  child: org.isPaused
+                                      ? Icon(Icons.pause_circle, size: 32, color: Colors.orange[800])
+                                      : Text(
+                                          org.name.isNotEmpty ? org.name[0].toUpperCase() : 'H',
+                                          style: const TextStyle(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1E3A5F),
+                                          ),
+                                        ),
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -177,33 +325,92 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: org.plan == 'premium'
-                                            ? Colors.amber.withOpacity(0.2)
-                                            : Colors.green.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        org.plan.toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: org.plan == 'premium'
-                                              ? Colors.amber[800]
-                                              : Colors.green[700],
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: org.plan == 'premium'
+                                                ? Colors.amber.withOpacity(0.2)
+                                                : Colors.green.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            org.plan.toUpperCase(),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: org.plan == 'premium'
+                                                  ? Colors.amber[800]
+                                                  : Colors.green[700],
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        if (org.isPaused) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange.withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.pause, size: 12, color: Colors.orange[800]),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'PAUSED',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.orange[800],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ],
                                 ),
                               ),
                             ],
                           ),
+                          if (org.isPaused && org.pausedReason != null) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, size: 18, color: Colors.orange[800]),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Paused: ${org.pausedReason}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.orange[800],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const Divider(height: 32),
                           _buildInfoRow(Icons.email, 'Email', org.email ?? 'Not set'),
                           const SizedBox(height: 12),
@@ -254,13 +461,13 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => AddUserScreen(
-                                  organizationId: widget.organization.id,
-                                  organizationName: widget.organization.name,
+                                  organizationId: _organization.id,
+                                  organizationName: _organization.name,
                                 ),
                               ),
                             );
                             if (result == true) {
-                              _loadMembers();
+                              _loadData();
                             }
                           },
                           icon: const Icon(Icons.person_add, size: 18),

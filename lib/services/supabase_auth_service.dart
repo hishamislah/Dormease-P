@@ -128,6 +128,41 @@ class SupabaseAuthService {
     final orgId = await getCurrentOrganizationId();
     return orgId != null;
   }
+
+  // Check if user's organization is paused
+  Future<Map<String, dynamic>?> checkOrganizationPausedStatus() async {
+    final userId = getCurrentUserId();
+    if (userId == null) return null;
+
+    try {
+      final membership = await _supabase
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', userId)
+          .limit(1)
+          .maybeSingle();
+
+      if (membership == null) return null;
+
+      final orgId = membership['organization_id'];
+      final org = await _supabase
+          .from('organizations')
+          .select('name, is_paused, paused_reason')
+          .eq('id', orgId)
+          .maybeSingle();
+
+      if (org == null) return null;
+
+      return {
+        'isPaused': org['is_paused'] ?? false,
+        'organizationName': org['name'],
+        'pausedReason': org['paused_reason'],
+      };
+    } catch (e) {
+      debugPrint('Error checking organization paused status: $e');
+      return null;
+    }
+  }
   
   // Sign out
   Future<void> signOut() async {

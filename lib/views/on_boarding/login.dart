@@ -7,6 +7,7 @@ import 'package:dormease/providers/data_provider.dart';
 import 'package:dormease/views/home/home_screen.dart';
 import 'package:dormease/views/on_boarding/business_details.dart';
 import 'package:dormease/views/admin/admin_dashboard.dart';
+import 'package:dormease/views/organization_paused_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -114,6 +115,22 @@ class _LoginState extends State<Login> {
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.setBool('isLoggedIn', true);
                         await prefs.setBool('isAdmin', false);
+                        
+                        // Check if organization is paused
+                        final pausedStatus = await _authService.checkOrganizationPausedStatus();
+                        if (pausedStatus != null && pausedStatus['isPaused'] == true) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => OrganizationPausedScreen(
+                                organizationName: pausedStatus['organizationName'],
+                                reason: pausedStatus['pausedReason'],
+                              ),
+                            ),
+                            (route) => false,
+                          );
+                          return;
+                        }
                         
                         // Reconnect data provider to fetch data for this user's organization
                         await context.read<DataProvider>().reconnect();
