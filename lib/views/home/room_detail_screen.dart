@@ -2,6 +2,7 @@ import 'package:dormease/models/room.dart';
 import 'package:dormease/models/tenant.dart';
 import 'package:dormease/providers/data_provider.dart';
 import 'package:dormease/views/home/tenant_detail_screen.dart';
+import 'package:dormease/views/home/edit_room_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,37 +25,65 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     bedOccupancy = List.generate(widget.room.totalBeds, (index) => index < widget.room.occupiedBeds);
   }
 
+  void _updateBedOccupancyFromRoom(Room room) {
+    if (bedOccupancy.length != room.totalBeds) {
+      bedOccupancy = List.generate(room.totalBeds, (index) => index < room.occupiedBeds);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 235, 235, 245),
-      appBar: AppBar(
-        title: Text("Room ${widget.room.roomNumber}"),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        actions: [
-          TextButton(
-            onPressed: _saveBedOccupancy,
-            child: const Text("Save"),
+    return Consumer<DataProvider>(
+      builder: (context, dataProvider, child) {
+        final room = dataProvider.rooms.firstWhere(
+          (r) => r.id == widget.room.id,
+          orElse: () => widget.room,
+        );
+        
+        _updateBedOccupancyFromRoom(room);
+        
+        return Scaffold(
+          backgroundColor: const Color.fromARGB(255, 235, 235, 245),
+          appBar: AppBar(
+            title: Text("Room ${room.roomNumber}"),
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditRoomScreen(room: room),
+                    ),
+                  );
+                },
+              ),
+              TextButton(
+                onPressed: () => _saveBedOccupancy(room),
+                child: const Text("Save"),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildRoomInfoCard(),
-            const SizedBox(height: 16),
-            _buildBedManagementCard(),
-            const SizedBox(height: 16),
-            _buildTenantListCard(),
-          ],
-        ),
-      ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildRoomInfoCard(room),
+                const SizedBox(height: 16),
+                _buildBedManagementCard(room),
+                const SizedBox(height: 16),
+                _buildTenantListCard(room),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildRoomInfoCard() {
+  Widget _buildRoomInfoCard(Room room) {
     return Card(
       color: Colors.white,
       child: Padding(
@@ -62,15 +91,15 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Room ${widget.room.roomNumber}", 
+            Text("Room ${room.roomNumber}", 
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildInfoItem("Type", widget.room.type),
-                _buildInfoItem("Monthly Rent", "₹${widget.room.rent.toStringAsFixed(0)}"),
-                _buildInfoItem("Total Beds", "${widget.room.totalBeds}"),
+                _buildInfoItem("Type", room.type),
+                _buildInfoItem("Monthly Rent", "₹${room.rent.toStringAsFixed(0)}"),
+                _buildInfoItem("Total Beds", "${room.totalBeds}"),
               ],
             ),
             const SizedBox(height: 12),
@@ -79,7 +108,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
               children: [
                 _buildInfoItem("Occupied", "${bedOccupancy.where((b) => b).length}"),
                 _buildInfoItem("Available", "${bedOccupancy.where((b) => !b).length}"),
-                _buildInfoItem("Status", widget.room.status),
+                _buildInfoItem("Status", room.status),
               ],
             ),
           ],
@@ -88,7 +117,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     );
   }
 
-  Widget _buildBedManagementCard() {
+  Widget _buildBedManagementCard(Room room) {
     return Card(
       color: Colors.white,
       child: Padding(
@@ -111,7 +140,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
               ),
-              itemCount: widget.room.totalBeds,
+              itemCount: room.totalBeds,
               itemBuilder: (context, index) {
                 return GestureDetector(
                   onTap: () {
@@ -196,7 +225,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     );
   }
 
-  Widget _buildTenantListCard() {
+  Widget _buildTenantListCard(Room room) {
     return Card(
       color: Colors.white,
       child: Padding(
@@ -213,7 +242,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
               builder: (context, dataProvider, child) {
                 // Get all tenants in this room
                 final roomTenants = dataProvider.tenants
-                    .where((tenant) => tenant.roomNumber == widget.room.roomNumber)
+                    .where((tenant) => tenant.roomNumber == room.roomNumber)
                     .toList();
 
                 if (roomTenants.isEmpty) {
@@ -351,21 +380,21 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     }
   }
 
-  void _saveBedOccupancy() {
+  void _saveBedOccupancy(Room room) {
     final occupiedCount = bedOccupancy.where((b) => b).length;
     
     // Update room with new occupancy data
     final updatedRoom = Room(
-      id: widget.room.id,
-      roomNumber: widget.room.roomNumber,
-      type: widget.room.type,
-      totalBeds: widget.room.totalBeds,
+      id: room.id,
+      roomNumber: room.roomNumber,
+      type: room.type,
+      totalBeds: room.totalBeds,
       occupiedBeds: occupiedCount,
-      rent: widget.room.rent,
-      underNotice: widget.room.underNotice,
-      rentDue: widget.room.rentDue,
-      activeTickets: widget.room.activeTickets,
-      status: occupiedCount == widget.room.totalBeds ? 'Full' : 'Available',
+      rent: room.rent,
+      underNotice: room.underNotice,
+      rentDue: room.rentDue,
+      activeTickets: room.activeTickets,
+      status: occupiedCount == room.totalBeds ? 'Full' : 'Available',
     );
     
     context.read<DataProvider>().updateRoom(updatedRoom);
