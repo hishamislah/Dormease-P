@@ -410,13 +410,13 @@ class TenantCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const PopupMenuItem<String>(
+                      PopupMenuItem<String>(
                         value: 'reminder',
                         child: Row(
                           children: [
-                            Icon(Icons.message, color: Colors.green),
-                            SizedBox(width: 8),
-                            Text('Send Reminder'),
+                            Image.asset('assets/images/whatsapp.png', height: 24, width: 24),
+                            const SizedBox(width: 8),
+                            const Text('Send Reminder'),
                           ],
                         ),
                       ),

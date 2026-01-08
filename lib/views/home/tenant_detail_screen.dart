@@ -6,6 +6,7 @@ import 'package:dormease/views/home/tenant_checkout_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TenantDetailScreen extends StatefulWidget {
   final Tenant tenant;
@@ -95,6 +96,23 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
     );
   }
 
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: cleanNumber,
+    );
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      } else {
+        debugPrint('Could not launch $launchUri');
+      }
+    } catch (e) {
+      debugPrint('Error making phone call: $e');
+    }
+  }
+
   Widget _buildProfileCard() {
     return Card(
       color: Colors.white,
@@ -118,9 +136,21 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       Text("Room ${widget.tenant.roomNumber}"),
-                      Text(widget.tenant.phone),
+                      GestureDetector(
+                        onTap: () => _makePhoneCall(widget.tenant.phone),
+                        child: Text(
+                          widget.tenant.phone,
+                          style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                        ),
+                      ),
                       if (widget.tenant.emergencyContact.isNotEmpty)
-                        Text("Emergency: ${widget.tenant.emergencyContact}"),
+                        GestureDetector(
+                          onTap: () => _makePhoneCall(widget.tenant.emergencyContact),
+                          child: Text(
+                            "Emergency: ${widget.tenant.emergencyContact}",
+                            style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                          ),
+                        ),
                       if (widget.tenant.description.isNotEmpty)
                         Text(widget.tenant.description, style: const TextStyle(fontStyle: FontStyle.italic)),
                     ],

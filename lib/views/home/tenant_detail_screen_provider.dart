@@ -6,6 +6,7 @@ import 'package:dormease/views/home/tenant_checkout_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TenantDetailScreenProvider extends StatelessWidget {
   final Tenant tenant;
@@ -84,6 +85,23 @@ class TenantDetailScreenProvider extends StatelessWidget {
     );
   }
 
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: cleanNumber,
+    );
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      } else {
+        debugPrint('Could not launch $launchUri');
+      }
+    } catch (e) {
+      debugPrint('Error making phone call: $e');
+    }
+  }
+
   Widget _buildProfileCard(Tenant tenant) {
     return Card(
       color: Colors.white,
@@ -107,9 +125,21 @@ class TenantDetailScreenProvider extends StatelessWidget {
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       Text("Room ${tenant.roomNumber}"),
-                      Text(tenant.phone),
+                      GestureDetector(
+                        onTap: () => _makePhoneCall(tenant.phone),
+                        child: Text(
+                          tenant.phone,
+                          style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                        ),
+                      ),
                       if (tenant.emergencyContact.isNotEmpty)
-                        Text("Emergency: ${tenant.emergencyContact}"),
+                        GestureDetector(
+                          onTap: () => _makePhoneCall(tenant.emergencyContact),
+                          child: Text(
+                            "Emergency: ${tenant.emergencyContact}",
+                            style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                          ),
+                        ),
                       if (tenant.description.isNotEmpty)
                         Text(tenant.description, style: const TextStyle(fontStyle: FontStyle.italic)),
                     ],
