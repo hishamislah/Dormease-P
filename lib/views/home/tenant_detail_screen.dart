@@ -50,49 +50,62 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 235, 235, 245),
-      appBar: AppBar(
-        title: Text(widget.tenant.name),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditTenantScreen(tenant: widget.tenant),
-                ),
-              );
-            },
+    return Consumer<DataProvider>(
+      builder: (context, dataProvider, child) {
+        final tenant = dataProvider.tenants.firstWhere(
+          (t) => t.id == widget.tenant.id,
+          orElse: () => widget.tenant,
+        );
+        
+        return Scaffold(
+          backgroundColor: const Color.fromARGB(255, 235, 235, 245),
+          appBar: AppBar(
+            title: Text(tenant.name),
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditTenantScreen(tenant: tenant),
+                    ),
+                  ).then((_) {
+                    if (mounted) {
+                      _loadPaymentData();
+                    }
+                  });
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout, color: Colors.red),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TenantCheckoutScreen(tenant: tenant),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.red),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TenantCheckoutScreen(tenant: widget.tenant),
-                ),
-              );
-            },
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildProfileCard(tenant),
+                const SizedBox(height: 16),
+                _buildRentStatusCard(context),
+                const SizedBox(height: 16),
+                _buildPaymentHistoryCard(context),
+              ],
+            ),
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildProfileCard(),
-            const SizedBox(height: 16),
-            _buildRentStatusCard(context),
-            const SizedBox(height: 16),
-            _buildPaymentHistoryCard(context),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -113,7 +126,7 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
     }
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(Tenant tenant) {
     return Card(
       color: Colors.white,
       child: Padding(
@@ -124,7 +137,7 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
               children: [
                 CircleAvatar(
                   radius: 40,
-                  backgroundImage: AssetImage(widget.tenant.imagePath),
+                  backgroundImage: AssetImage(tenant.imagePath),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -132,27 +145,27 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.tenant.name,
+                        tenant.name,
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      Text("Room ${widget.tenant.roomNumber}"),
+                      Text("Room ${tenant.roomNumber}"),
                       GestureDetector(
-                        onTap: () => _makePhoneCall(widget.tenant.phone),
+                        onTap: () => _makePhoneCall(tenant.phone),
                         child: Text(
-                          widget.tenant.phone,
+                          tenant.phone,
                           style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
                         ),
                       ),
-                      if (widget.tenant.emergencyContact.isNotEmpty)
+                      if (tenant.emergencyContact.isNotEmpty)
                         GestureDetector(
-                          onTap: () => _makePhoneCall(widget.tenant.emergencyContact),
+                          onTap: () => _makePhoneCall(tenant.emergencyContact),
                           child: Text(
-                            "Emergency: ${widget.tenant.emergencyContact}",
+                            "Emergency: ${tenant.emergencyContact}",
                             style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
                           ),
                         ),
-                      if (widget.tenant.description.isNotEmpty)
-                        Text(widget.tenant.description, style: const TextStyle(fontStyle: FontStyle.italic)),
+                      if (tenant.description.isNotEmpty)
+                        Text(tenant.description, style: const TextStyle(fontStyle: FontStyle.italic)),
                     ],
                   ),
                 ),
@@ -162,9 +175,9 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildInfoItem("Monthly Rent", "₹${widget.tenant.monthlyRent.toStringAsFixed(0)}"),
-                _buildInfoItem("Security Deposit", "₹${widget.tenant.securityDeposit.toStringAsFixed(0)}"),
-                _buildInfoItem("Joined", "${widget.tenant.joinedDate.day}/${widget.tenant.joinedDate.month}/${widget.tenant.joinedDate.year}"),
+                _buildInfoItem("Monthly Rent", "₹${tenant.monthlyRent.toStringAsFixed(0)}"),
+                _buildInfoItem("Security Deposit", "₹${tenant.securityDeposit.toStringAsFixed(0)}"),
+                _buildInfoItem("Joined", "${tenant.joinedDate.day}/${tenant.joinedDate.month}/${tenant.joinedDate.year}"),
               ],
             ),
           ],
