@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:dormease/services/export_service.dart';
 import 'reset_password_screen.dart';
+import 'people_screen.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -44,6 +45,25 @@ class _SettingsState extends State<Settings> {
                       });
                     },
                   ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildSettingsSection(
+              "Organization",
+              [
+                _buildActionTile(
+                  "People",
+                  "Manage team members and their roles",
+                  Icons.people,
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PeopleScreen(),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 16),
