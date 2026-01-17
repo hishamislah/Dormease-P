@@ -2,6 +2,7 @@
 
 Hostel and PG management app
 
+flutter run -d emulator-5554
 
 
 RUN IOS
