@@ -127,6 +127,7 @@ class _TenantCheckoutScreenState extends State<TenantCheckoutScreen> {
             Text("Room: ${widget.tenant.roomNumber}"),
             Text("Joined: ${widget.tenant.joinedDate.day}/${widget.tenant.joinedDate.month}/${widget.tenant.joinedDate.year}"),
             Text("Monthly Rent: ₹${widget.tenant.monthlyRent.toStringAsFixed(0)}"),
+            Text("Deposit: ₹${widget.tenant.securityDeposit.toStringAsFixed(0)}"),
           ],
         ),
       ),

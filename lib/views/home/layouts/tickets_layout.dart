@@ -64,11 +64,23 @@ class _TicketsLayoutState extends State<TicketsLayout> {
                 );
               }
               
+              // Sort tickets: High priority first, then by date
+              final sortedTickets = List<Ticket>.from(filteredTickets);
+              sortedTickets.sort((a, b) {
+                // First sort by priority (High > Medium > Low)
+                if (a.priority == 'High' && b.priority != 'High') return -1;
+                if (a.priority != 'High' && b.priority == 'High') return 1;
+                if (a.priority == 'Medium' && b.priority == 'Low') return -1;
+                if (a.priority == 'Low' && b.priority == 'Medium') return 1;
+                // If same priority, sort by date (newest first)
+                return b.date.compareTo(a.date);
+              });
+              
               return ListView.builder(
-                itemCount: filteredTickets.length,
+                itemCount: sortedTickets.length,
                 itemBuilder: (context, index) {
                   return TicketCard(
-                    ticket: filteredTickets[index],
+                    ticket: sortedTickets[index],
                     ticketNumber: index + 1,
                   );
                 },
@@ -214,6 +226,75 @@ class TicketCard extends StatelessWidget {
     );
   }
 
+  void _updateTicketPriority(BuildContext context) {
+    String selectedPriority = ticket.priority;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Set Priority"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<String>(
+                title: const Text("High"),
+                subtitle: const Text("Urgent - needs immediate attention"),
+                value: "High",
+                groupValue: selectedPriority,
+                onChanged: (value) {
+                  setState(() {
+                    selectedPriority = value!;
+                  });
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text("Medium"),
+                subtitle: const Text("Important - address soon"),
+                value: "Medium",
+                groupValue: selectedPriority,
+                onChanged: (value) {
+                  setState(() {
+                    selectedPriority = value!;
+                  });
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text("Low"),
+                subtitle: const Text("Can wait - not urgent"),
+                value: "Low",
+                groupValue: selectedPriority,
+                onChanged: (value) {
+                  setState(() {
+                    selectedPriority = value!;
+                  });
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                context.read<DataProvider>().updateTicketPriority(ticket.id, selectedPriority);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Ticket priority set to $selectedPriority!"),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              child: const Text("Update"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Define colors based on priority and status
@@ -236,14 +317,14 @@ class TicketCard extends StatelessWidget {
             : Icons.error_outline;
 
     return Card(
-      color: Colors.white,
       elevation: 2,
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      color: ticket.priority == 'High' ? Colors.red.shade50 : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: priorityColor.withOpacity(0.3),
-          width: 1,
+          color: priorityColor.withOpacity(ticket.priority == 'High' ? 0.5 : 0.3),
+          width: ticket.priority == 'High' ? 2 : 1,
         ),
       ),
       child: Column(
@@ -340,12 +421,7 @@ class TicketCard extends StatelessWidget {
                     } else if (value == 'status') {
                       _updateTicketStatus(context);
                     } else if (value == 'priority') {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Priority update functionality coming soon!"),
-                          backgroundColor: Colors.blue,
-                        ),
-                      );
+                      _updateTicketPriority(context);
                     } else if (value == 'delete') {
                       _showDeleteConfirmation(context);
                     }

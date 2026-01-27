@@ -137,6 +137,19 @@ class SupabaseTicketsService {
     }
   }
 
+  // Update ticket priority
+  Future<void> updateTicketPriority(String ticketId, String priority) async {
+    try {
+      await _supabase
+          .from('tickets')
+          .update({'priority': priority})
+          .eq('id', ticketId);
+    } catch (e) {
+      debugPrint('Error updating ticket priority: $e');
+      rethrow;
+    }
+  }
+
   // Delete ticket
   Future<void> deleteTicket(String ticketId) async {
     try {

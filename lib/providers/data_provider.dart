@@ -323,8 +323,7 @@ class DataProvider extends ChangeNotifier {
       'status': room.status,
       'bathroomType': room.bathroomType,
     });
-    // Refresh data to ensure UI updates
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Stream will handle the update automatically
     notifyListeners();
   }
 
@@ -341,13 +340,18 @@ class DataProvider extends ChangeNotifier {
       'status': updatedRoom.status,
       'bathroomType': updatedRoom.bathroomType,
     });
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Update local list immediately for instant UI feedback
+    final index = _rooms.indexWhere((r) => r.id == updatedRoom.id);
+    if (index != -1) {
+      _rooms[index] = updatedRoom;
+    }
     notifyListeners();
   }
 
   Future<void> deleteRoom(String id) async {
     await _roomsService.deleteRoom(id);
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Immediately remove from local list for instant UI update
+    _rooms.removeWhere((room) => room.id == id);
     notifyListeners();
   }
 
@@ -368,7 +372,7 @@ class DataProvider extends ChangeNotifier {
       'leavingDate': tenant.leavingDate,
       'partialRent': tenant.partialRent,
     });
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Stream will handle the update automatically
     notifyListeners();
   }
 
@@ -389,7 +393,11 @@ class DataProvider extends ChangeNotifier {
       'leavingDate': updatedTenant.leavingDate,
       'partialRent': updatedTenant.partialRent,
     });
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Update local list immediately for instant UI feedback
+    final index = _tenants.indexWhere((t) => t.id == updatedTenant.id);
+    if (index != -1) {
+      _tenants[index] = updatedTenant;
+    }
     notifyListeners();
   }
 
@@ -495,19 +503,53 @@ class DataProvider extends ChangeNotifier {
       'status': ticket.status,
       'priority': ticket.priority,
     });
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Stream will handle the update automatically
     notifyListeners();
   }
 
   Future<void> deleteTicket(String id) async {
     await _ticketsService.deleteTicket(id);
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Immediately remove from local list for instant UI update
+    _tickets.removeWhere((ticket) => ticket.id == id);
     notifyListeners();
   }
 
   Future<void> updateTicketStatus(String id, String status) async {
     await _ticketsService.updateTicketStatus(id, status);
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Update local list immediately for instant UI feedback
+    final index = _tickets.indexWhere((t) => t.id == id);
+    if (index != -1) {
+      _tickets[index] = Ticket(
+        id: _tickets[index].id,
+        title: _tickets[index].title,
+        description: _tickets[index].description,
+        raisedBy: _tickets[index].raisedBy,
+        roomNumber: _tickets[index].roomNumber,
+        date: _tickets[index].date,
+        status: status,
+        priority: _tickets[index].priority,
+      );
+    }
+    notifyListeners();
+  }
+
+  Future<void> updateTicketPriority(String id, String priority) async {
+    await _ticketsService.updateTicketPriority(id, priority);
+    // Update local list immediately for instant UI feedback
+    final index = _tickets.indexWhere((t) => t.id == id);
+    if (index != -1) {
+      final ticket = _tickets[index];
+      _tickets[index] = Ticket(
+        id: ticket.id,
+        title: ticket.title,
+        description: ticket.description,
+        raisedBy: ticket.raisedBy,
+        roomNumber: ticket.roomNumber,
+        date: ticket.date,
+        status: ticket.status,
+        priority: priority,
+      );
+    }
     notifyListeners();
   }
   
