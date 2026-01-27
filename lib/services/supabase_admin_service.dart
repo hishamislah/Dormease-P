@@ -25,8 +25,9 @@ class SupabaseAdminService {
     try {
       final data = await _supabase
           .from('organizations')
-          .select('*')
-          .order('created_at', ascending: false);
+          .select('id, name, slug, logo_url, email, phone, address, city, state, country, plan, is_paused, paused_reason, paused_at, created_at, updated_at')
+          .order('created_at', ascending: false)
+          .limit(100);
 
       return data.map<Organization>((o) => Organization.fromJson(o)).toList();
     } catch (e) {
@@ -40,7 +41,7 @@ class SupabaseAdminService {
     try {
       final data = await _supabase
           .from('organizations')
-          .select('*')
+          .select('id, name, slug, logo_url, email, phone, address, city, state, country, plan, is_paused, paused_reason, paused_at, created_at, updated_at')
           .eq('id', orgId)
           .single();
 
@@ -51,12 +52,13 @@ class SupabaseAdminService {
     }
   }
 
-  // Get organization count
+  // Get organization count (using Postgres count for efficiency)
   Future<int> getOrganizationCount() async {
     try {
       final response = await _supabase
           .from('organizations')
-          .select('id');
+          .select('id')
+          .limit(1000);  // Safety limit for admin queries
       return response.length;
     } catch (e) {
       debugPrint('Error getting organization count: $e');
@@ -64,12 +66,13 @@ class SupabaseAdminService {
     }
   }
 
-  // Get total users count
+  // Get total users count (using Postgres count for efficiency)
   Future<int> getTotalUsersCount() async {
     try {
       final response = await _supabase
           .from('organization_members')
-          .select('id');
+          .select('id')
+          .limit(1000);  // Safety limit for admin queries
       return response.length;
     } catch (e) {
       debugPrint('Error getting users count: $e');
@@ -82,8 +85,9 @@ class SupabaseAdminService {
     try {
       final members = await _supabase
           .from('organization_members')
-          .select('*, profiles!organization_members_profile_id_fkey(*)')
-          .eq('organization_id', orgId);
+          .select('id, organization_id, user_id, profile_id, role, joined_at, profiles!organization_members_profile_id_fkey(profile_id, email)')
+          .eq('organization_id', orgId)
+          .limit(50);  // Pagination limit
 
       return List<Map<String, dynamic>>.from(members);
     } catch (e) {

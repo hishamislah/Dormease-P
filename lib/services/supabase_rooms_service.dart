@@ -55,13 +55,17 @@ class SupabaseRoomsService {
       if (organizationId != null) {
         rooms = await _supabase
             .from('rooms')
-            .select('*')
-            .eq('organization_id', organizationId);
+            .select('id, room_number, type, total_beds, occupied_beds, rent, under_notice, rent_due, active_tickets, status, bathroom_type')
+            .eq('organization_id', organizationId)
+            .order('room_number')
+            .limit(100);
       } else {
         rooms = await _supabase
             .from('rooms')
-            .select('*')
-            .eq('profile_id', profileId!);
+            .select('id, room_number, type, total_beds, occupied_beds, rent, under_notice, rent_due, active_tickets, status, bathroom_type')
+            .eq('profile_id', profileId!)
+            .order('room_number')
+            .limit(100);
       }
 
       return rooms.map((room) {

@@ -14,7 +14,7 @@ class SupabaseBusinessInfoService {
     try {
       final result = await _supabase
           .from('business_info')
-          .select('*')
+          .select('id, profile_id, business_name, business_type, address, phone, logo_url, city, state, country, business_email, created_at, updated_at')
           .eq('profile_id', profileId)
           .maybeSingle();
 

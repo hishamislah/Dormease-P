@@ -14,7 +14,7 @@ class SupabaseUserDataService {
     try {
       final result = await _supabase
           .from('profiles')
-          .select('*')
+          .select('id, profile_id, user_id, email, has_completed_business_info, created_at, updated_at')
           .eq('profile_id', profileId)
           .single();
 

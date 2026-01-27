@@ -56,29 +56,47 @@ class SupabaseTenantsService {
       if (organizationId != null) {
         tenants = await _supabase
             .from('tenants')
-            .select('*')
-            .eq('organization_id', organizationId);
+            .select('id, name, phone, emergency_contact, description, room_number, joined_date, monthly_rent, security_deposit, under_notice, rent_due, image_path, rent_due_date, leaving_date, partial_rent, last_payment_date, last_payment_month')
+            .eq('organization_id', organizationId)
+            .order('name')
+            .limit(100);
       } else {
         tenants = await _supabase
             .from('tenants')
-            .select('*')
-            .eq('profile_id', profileId!);
+            .select('id, name, phone, emergency_contact, description, room_number, joined_date, monthly_rent, security_deposit, under_notice, rent_due, image_path, rent_due_date, leaving_date, partial_rent, last_payment_date, last_payment_month')
+            .eq('profile_id', profileId!)
+            .order('name')
+            .limit(100);
       }
 
-      // Fetch payment history for each tenant
-      List<Map<String, dynamic>> tenantsWithPayments = [];
-      for (var tenant in tenants) {
-        final payments = await _supabase
+      // Batch fetch ALL payment histories in ONE query (eliminates N+1)
+      final tenantIds = tenants.map((t) => t['id'].toString()).toList();
+      
+      List<Map<String, dynamic>> allPayments = [];
+      if (tenantIds.isNotEmpty) {
+        allPayments = await _supabase
             .from('payment_history')
-            .select('*')
-            .eq('tenant_id', tenant['id'])
+            .select('id, tenant_id, month, amount, status, date, payment_method')
+            .inFilter('tenant_id', tenantIds)
             .order('date', ascending: false);
+      }
 
-        tenantsWithPayments.add({
+      // Group payments by tenant_id in memory
+      final paymentsByTenant = <String, List<Map<String, dynamic>>>{};
+      for (final payment in allPayments) {
+        final tid = payment['tenant_id'].toString();
+        paymentsByTenant.putIfAbsent(tid, () => []).add(payment);
+      }
+
+      // Combine tenants with their payments (limit to 24 per tenant)
+      List<Map<String, dynamic>> tenantsWithPayments = tenants.map((tenant) {
+        final tid = tenant['id'].toString();
+        final payments = (paymentsByTenant[tid] ?? []).take(24).toList();
+        return {
           ...tenant,
           'paymentHistory': payments,
-        });
-      }
+        };
+      }).toList();
 
       return tenantsWithPayments;
     } catch (e) {
@@ -174,7 +192,7 @@ class SupabaseTenantsService {
       // Get tenant data
       final tenant = await _supabase
           .from('tenants')
-          .select('*')
+          .select('id, monthly_rent, rent_due_date')
           .eq('id', tenantId)
           .single();
 
@@ -183,7 +201,7 @@ class SupabaseTenantsService {
       // Check if payment record exists
       final existingPayment = await _supabase
           .from('payment_history')
-          .select('*')
+          .select('id')
           .eq('tenant_id', tenantId)
           .eq('month', month)
           .maybeSingle();
@@ -231,7 +249,7 @@ class SupabaseTenantsService {
           // Also check if current month payment exists
           final currentMonthPayment = await _supabase
               .from('payment_history')
-              .select('*')
+              .select('id')
               .eq('tenant_id', tenantId)
               .eq('month', currentMonthYear)
               .eq('status', 'Paid')
@@ -276,7 +294,7 @@ class SupabaseTenantsService {
       // Get tenant data to recalculate rent_due status
       final tenant = await _supabase
           .from('tenants')
-          .select('*')
+          .select('id, rent_due_date')
           .eq('id', tenantId)
           .single();
 
@@ -292,7 +310,7 @@ class SupabaseTenantsService {
         // Check if current month payment still exists
         final currentMonthPayment = await _supabase
             .from('payment_history')
-            .select('*')
+            .select('id')
             .eq('tenant_id', tenantId)
             .eq('month', currentMonthYear)
             .eq('status', 'Paid')
@@ -323,14 +341,43 @@ class SupabaseTenantsService {
     try {
       final payments = await _supabase
           .from('payment_history')
-          .select('*')
+          .select('id, tenant_id, month, amount, status, date, payment_method')
           .eq('tenant_id', tenantId)
-          .order('date', ascending: false);
+          .order('date', ascending: false)
+          .limit(36);
       
       return payments;
     } catch (e) {
       debugPrint('Error fetching payment history: $e');
       return [];
+    }
+  }
+
+  // Batch fetch payment histories for multiple tenants (eliminates N+1)
+  Future<Map<String, List<Map<String, dynamic>>>> fetchBatchPaymentHistories(List<String> tenantIds) async {
+    if (tenantIds.isEmpty) return {};
+    
+    try {
+      final allPayments = await _supabase
+          .from('payment_history')
+          .select('id, tenant_id, month, amount, status, date, payment_method')
+          .inFilter('tenant_id', tenantIds)
+          .order('date', ascending: false);
+      
+      // Group payments by tenant_id
+      final paymentsByTenant = <String, List<Map<String, dynamic>>>{};
+      for (final payment in allPayments) {
+        final tid = payment['tenant_id'].toString();
+        paymentsByTenant.putIfAbsent(tid, () => []).add(payment);
+      }
+      
+      // Limit to 36 payments per tenant
+      return paymentsByTenant.map((tid, payments) => 
+        MapEntry(tid, payments.take(36).toList())
+      );
+    } catch (e) {
+      debugPrint('Error batch fetching payment histories: $e');
+      return {};
     }
   }
 

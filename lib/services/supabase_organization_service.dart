@@ -35,7 +35,7 @@ class SupabaseOrganizationService {
     try {
       final data = await _supabase
           .from('organizations')
-          .select('*')
+          .select('id, name, slug, logo_url, email, phone, address, city, state, country, plan, is_paused, paused_reason, paused_at, created_at, updated_at')
           .eq('id', orgId)
           .single();
 
@@ -63,7 +63,7 @@ class SupabaseOrganizationService {
       
       final orgs = await _supabase
           .from('organizations')
-          .select('*')
+          .select('id, name, slug, logo_url, email, phone, address, city, state, country, plan, is_paused, paused_reason, paused_at, created_at, updated_at')
           .inFilter('id', orgIds);
 
       return orgs.map((o) => Organization.fromJson(o)).toList();
@@ -108,7 +108,7 @@ class SupabaseOrganizationService {
             'country': country,
             'logo_url': logoUrl,
           })
-          .select()
+          .select('id, name, slug, logo_url, email, phone, address, city, state, country, plan, is_paused, paused_reason, paused_at, created_at, updated_at')
           .single();
 
       final org = Organization.fromJson(orgData);
@@ -157,8 +157,9 @@ class SupabaseOrganizationService {
     try {
       final members = await _supabase
           .from('organization_members')
-          .select('*')
-          .eq('organization_id', orgId);
+          .select('id, organization_id, user_id, profile_id, role, invited_at, joined_at')
+          .eq('organization_id', orgId)
+          .limit(50);
 
       return members.map((m) => OrganizationMember.fromJson(m)).toList();
     } catch (e) {

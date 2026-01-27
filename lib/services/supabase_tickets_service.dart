@@ -55,15 +55,17 @@ class SupabaseTicketsService {
       if (organizationId != null) {
         tickets = await _supabase
             .from('tickets')
-            .select('*')
+            .select('id, title, description, raised_by, room_number, date, status, priority')
             .eq('organization_id', organizationId)
-            .order('date', ascending: false);
+            .order('date', ascending: false)
+            .limit(100);
       } else {
         tickets = await _supabase
             .from('tickets')
-            .select('*')
+            .select('id, title, description, raised_by, room_number, date, status, priority')
             .eq('profile_id', profileId!)
-            .order('date', ascending: false);
+            .order('date', ascending: false)
+            .limit(100);
       }
 
       return tickets.map((ticket) {

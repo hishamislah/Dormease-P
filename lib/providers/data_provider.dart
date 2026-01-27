@@ -104,27 +104,28 @@ class DataProvider extends ChangeNotifier {
           _tenants = tenantsList;
           _isConnected = true;
           _isLoading = false;
-          debugPrint('✅ Updated _tenants list with ${tenantsList.length} tenants, calling notifyListeners()');
+          debugPrint('✅ Updated _tenants list with ${tenantsList.length} tenants');
           notifyListeners(); // Notify UI immediately so tenants appear
           
-          // Then, fetch payment history for each tenant asynchronously in the background
-          for (final tenant in tenantsList) {
+          // BATCH fetch ALL payment histories in ONE query (eliminates N+1)
+          if (tenantsList.isNotEmpty) {
             try {
-              final payments = await _tenantsService.fetchPaymentHistory(tenant.id);
-              final paymentRecords = payments.map((p) => PaymentRecord(
-                id: p['id'].toString(),
-                date: DateTime.parse(p['date']),
-                amount: (p['amount'] ?? 0).toDouble(),
-                status: p['status'] ?? 'Pending',
-                month: p['month'] ?? '',
-                paymentMethod: p['payment_method'] ?? 'Cash',
-              )).toList();
+              final tenantIds = tenantsList.map((t) => t.id).toList();
+              final paymentsByTenant = await _tenantsService.fetchBatchPaymentHistories(tenantIds);
               
-              // Find the tenant in the current list by ID (in case list changed due to deletion)
-              final tenantIndex = _tenants.indexWhere((t) => t.id == tenant.id);
-              if (tenantIndex != -1) {
-                // Update the tenant in the list with payment history
-                _tenants[tenantIndex] = Tenant(
+              // Update all tenants with their payment histories
+              _tenants = tenantsList.map((tenant) {
+                final payments = paymentsByTenant[tenant.id] ?? [];
+                final paymentRecords = payments.map((p) => PaymentRecord(
+                  id: p['id'].toString(),
+                  date: DateTime.parse(p['date']),
+                  amount: (p['amount'] ?? 0).toDouble(),
+                  status: p['status'] ?? 'Pending',
+                  month: p['month'] ?? '',
+                  paymentMethod: p['payment_method'] ?? 'Cash',
+                )).toList();
+                
+                return Tenant(
                   id: tenant.id,
                   name: tenant.name,
                   phone: tenant.phone,
@@ -142,13 +143,12 @@ class DataProvider extends ChangeNotifier {
                   partialRent: tenant.partialRent,
                   paymentHistory: paymentRecords,
                 );
-                
-                // Notify listeners after each payment history is loaded
-                notifyListeners();
-              }
+              }).toList();
+              
+              debugPrint('✅ Loaded payment histories for ${tenantIds.length} tenants in ONE batch query');
+              notifyListeners(); // Single notification after all payments loaded
             } catch (e) {
-              debugPrint('Error loading payment history for tenant ${tenant.id}: $e');
-              // Continue loading other tenants' payment histories even if one fails
+              debugPrint('Error batch loading payment histories: $e');
             }
           }
           
@@ -185,9 +185,6 @@ class DataProvider extends ChangeNotifier {
               }
             }
           }
-          
-          // Final notification after all rent due status updates
-          notifyListeners();
         },
         onError: (error) {
           debugPrint('Error in tenants stream: $error');

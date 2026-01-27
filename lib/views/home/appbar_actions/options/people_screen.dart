@@ -47,29 +47,40 @@ class _PeopleScreenState extends State<PeopleScreen> {
         _currentUserRole = membership?['role'];
         debugPrint('Current user role: $_currentUserRole');
         
-        // Get all members - profiles is linked via profile_id FK
+        // Get all members with profiles in ONE query
         final members = await _supabase
             .from('organization_members')
-            .select('*, profiles!organization_members_profile_id_fkey(profile_id, email)')
+            .select('id, organization_id, user_id, profile_id, role, joined_at, profiles!organization_members_profile_id_fkey(profile_id, email)')
             .eq('organization_id', _currentOrgId!)
-            .order('role', ascending: true);
+            .order('role', ascending: true)
+            .limit(50);
         
         debugPrint('Members raw: $members');
         
-        // Fetch business_info for each member's profile_id
+        // BATCH fetch ALL business_info in ONE query (eliminates N+1)
         final membersList = List<Map<String, dynamic>>.from(members);
-        for (var member in membersList) {
-          final profileId = member['profile_id'];
-          if (profileId != null) {
-            try {
-              final businessInfo = await _supabase
-                  .from('business_info')
-                  .select('business_name')
-                  .eq('profile_id', profileId)
-                  .maybeSingle();
-              member['business_info'] = businessInfo;
-            } catch (e) {
-              debugPrint('Error fetching business_info: $e');
+        final profileIds = membersList
+            .where((m) => m['profile_id'] != null)
+            .map((m) => m['profile_id'].toString())
+            .toList();
+        
+        if (profileIds.isNotEmpty) {
+          final businessInfoList = await _supabase
+              .from('business_info')
+              .select('profile_id, business_name')
+              .inFilter('profile_id', profileIds);
+          
+          // Create lookup map for O(1) access
+          final businessInfoMap = <String, Map<String, dynamic>>{};
+          for (final info in businessInfoList) {
+            businessInfoMap[info['profile_id'].toString()] = info;
+          }
+          
+          // Assign business_info to each member
+          for (var member in membersList) {
+            final profileId = member['profile_id']?.toString();
+            if (profileId != null) {
+              member['business_info'] = businessInfoMap[profileId];
             }
           }
         }
