@@ -7,8 +7,7 @@ flutter run -d emulator-5554
 
 RUN IOS
 
-flutter run -d 00008130-000160440E8B803A
- S
+flutter install -d 00008130-000160440E8B803A --release
 ## Getting Started
 
 - This is a Hostel and PG management cross-platform mobile application, developed in flutter.
