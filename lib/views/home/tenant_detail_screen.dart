@@ -1,5 +1,6 @@
 import 'package:dormease/models/tenant.dart';
 import 'package:dormease/providers/data_provider.dart';
+import 'package:dormease/providers/user_provider.dart';
 import 'package:dormease/services/payment_service.dart' as payment_service;
 import 'package:dormease/views/home/edit_tenant_screen.dart';
 import 'package:dormease/views/home/tenant_checkout_screen.dart';
@@ -126,6 +127,42 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
     }
   }
 
+  Future<void> _sendRentReminder(BuildContext context) async {
+    // Get business details from UserProvider
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userData = userProvider.userData;
+    final businessName = userData['businessName'] ?? userData['business_name'] ?? 'Hostel';
+    final upiPhone = userData['phone'] ?? '';
+    
+    // Get current tenant data
+    final dataProvider = Provider.of<DataProvider>(context, listen: false);
+    final tenant = dataProvider.tenants.firstWhere(
+      (t) => t.id == widget.tenant.id,
+      orElse: () => widget.tenant,
+    );
+    
+    final message =
+        "Hello ${tenant.name},\n\nThis is a friendly reminder that your rent is Due.\n\nAmount: ₹${tenant.monthlyRent.toStringAsFixed(0)}\nDue Date: ${tenant.nextRentDueDate.day}/${tenant.nextRentDueDate.month}/${tenant.nextRentDueDate.year}\n\nPlease make the payment at your earliest\nUpi $upiPhone\n\nThank you!\n$businessName";
+
+    final phoneNumber = tenant.phone.replaceAll(RegExp(r'[^0-9]'), '');
+    final whatsappUrl =
+        "https://wa.me/91$phoneNumber?text=${Uri.encodeComponent(message)}";
+
+    final Uri uri = Uri.parse(whatsappUrl);
+    try {
+      await launchUrl(uri);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Could not open WhatsApp. Please check if it's installed."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildProfileCard(Tenant tenant) {
     return Card(
       color: Colors.white,
@@ -168,6 +205,30 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
                         Text(tenant.description, style: const TextStyle(fontStyle: FontStyle.italic)),
                     ],
                   ),
+                ),
+                Column(
+                  children: [
+                    InkWell(
+                      onTap: () => _sendRentReminder(context),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF25D366).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF25D366)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.chat, size: 14, color: Color(0xFF25D366)),
+                            SizedBox(width: 4),
+                            Text("Remind", style: TextStyle(fontSize: 11, color: Color(0xFF25D366), fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
