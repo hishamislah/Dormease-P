@@ -63,9 +63,13 @@ class DataProvider extends ChangeNotifier {
         }
       );
       
+      // For tenants: fetch initial data first for immediate display
+      _loadInitialTenants();
+      
       // Listen to tenants stream
       _tenantsSubscription = _tenantsService.tenantsStream().listen(
         (data) async {
+          debugPrint('🔄 Tenants stream update: ${data.length} tenants received');
           final now = DateTime.now();
           
           // First, create tenant objects with empty payment history
@@ -96,9 +100,15 @@ class DataProvider extends ChangeNotifier {
             );
           }).toList();
           
-          // Then, fetch payment history for each tenant
-          for (int i = 0; i < tenantsList.length; i++) {
-            final tenant = tenantsList[i];
+          // Update tenants list immediately to show them on screen
+          _tenants = tenantsList;
+          _isConnected = true;
+          _isLoading = false;
+          debugPrint('✅ Updated _tenants list with ${tenantsList.length} tenants, calling notifyListeners()');
+          notifyListeners(); // Notify UI immediately so tenants appear
+          
+          // Then, fetch payment history for each tenant asynchronously in the background
+          for (final tenant in tenantsList) {
             try {
               final payments = await _tenantsService.fetchPaymentHistory(tenant.id);
               final paymentRecords = payments.map((p) => PaymentRecord(
@@ -110,30 +120,37 @@ class DataProvider extends ChangeNotifier {
                 paymentMethod: p['payment_method'] ?? 'Cash',
               )).toList();
               
-              tenantsList[i] = Tenant(
-                id: tenant.id,
-                name: tenant.name,
-                phone: tenant.phone,
-                emergencyContact: tenant.emergencyContact,
-                description: tenant.description,
-                roomNumber: tenant.roomNumber,
-                joinedDate: tenant.joinedDate,
-                monthlyRent: tenant.monthlyRent,
-                securityDeposit: tenant.securityDeposit,
-                underNotice: tenant.underNotice,
-                rentDue: tenant.rentDue,
-                imagePath: tenant.imagePath,
-                rentDueDate: tenant.rentDueDate,
-                leavingDate: tenant.leavingDate,
-                partialRent: tenant.partialRent,
-                paymentHistory: paymentRecords,
-              );
+              // Find the tenant in the current list by ID (in case list changed due to deletion)
+              final tenantIndex = _tenants.indexWhere((t) => t.id == tenant.id);
+              if (tenantIndex != -1) {
+                // Update the tenant in the list with payment history
+                _tenants[tenantIndex] = Tenant(
+                  id: tenant.id,
+                  name: tenant.name,
+                  phone: tenant.phone,
+                  emergencyContact: tenant.emergencyContact,
+                  description: tenant.description,
+                  roomNumber: tenant.roomNumber,
+                  joinedDate: tenant.joinedDate,
+                  monthlyRent: tenant.monthlyRent,
+                  securityDeposit: tenant.securityDeposit,
+                  underNotice: tenant.underNotice,
+                  rentDue: tenant.rentDue,
+                  imagePath: tenant.imagePath,
+                  rentDueDate: tenant.rentDueDate,
+                  leavingDate: tenant.leavingDate,
+                  partialRent: tenant.partialRent,
+                  paymentHistory: paymentRecords,
+                );
+                
+                // Notify listeners after each payment history is loaded
+                notifyListeners();
+              }
             } catch (e) {
               debugPrint('Error loading payment history for tenant ${tenant.id}: $e');
+              // Continue loading other tenants' payment histories even if one fails
             }
           }
-          
-          _tenants = tenantsList;
           
           // Auto-update rent due status for tenants
           for (var tenant in _tenants) {
@@ -169,8 +186,7 @@ class DataProvider extends ChangeNotifier {
             }
           }
           
-          _isConnected = true;
-          _isLoading = false;
+          // Final notification after all rent due status updates
           notifyListeners();
         },
         onError: (error) {
@@ -212,6 +228,69 @@ class DataProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error setting up Supabase streams: $e');
       _isConnected = false;
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+  
+  // Load initial tenants data immediately for fast display
+  Future<void> _loadInitialTenants() async {
+    try {
+      final data = await _tenantsService.fetchTenants();
+      
+      // Process tenants with payment history from fetchTenants
+      List<Tenant> tenantsList = data.map((item) {
+        // Extract payment history if available
+        List<PaymentRecord> paymentHistory = [];
+        if (item['paymentHistory'] != null) {
+          paymentHistory = (item['paymentHistory'] as List).map((p) {
+            return PaymentRecord(
+              id: p['id'].toString(),
+              date: DateTime.parse(p['date']),
+              amount: (p['amount'] ?? 0).toDouble(),
+              status: p['status'] ?? 'Pending',
+              month: p['month'] ?? '',
+              paymentMethod: p['payment_method'] ?? 'Cash',
+            );
+          }).toList();
+        }
+        
+        return Tenant(
+          id: item['id'].toString(),
+          name: item['name'] ?? '',
+          phone: item['phone'] ?? '',
+          emergencyContact: item['emergency_contact'] ?? '',
+          description: item['description'] ?? '',
+          roomNumber: item['room_number'] ?? '',
+          joinedDate: item['joined_date'] != null 
+              ? DateTime.parse(item['joined_date'])
+              : DateTime.now(),
+          monthlyRent: (item['monthly_rent'] ?? 0).toDouble(),
+          securityDeposit: (item['security_deposit'] ?? 0).toDouble(),
+          underNotice: item['under_notice'] ?? false,
+          rentDue: item['rent_due'] ?? false,
+          imagePath: item['image_path'] ?? 'assets/images/dp.png',
+          rentDueDate: item['rent_due_date'] != null 
+              ? DateTime.parse(item['rent_due_date'])
+              : null,
+          leavingDate: item['leaving_date'] != null 
+              ? DateTime.parse(item['leaving_date'])
+              : null,
+          partialRent: item['partial_rent']?.toDouble(),
+          paymentHistory: paymentHistory,
+        );
+      }).toList();
+      
+      // Update tenants list immediately
+      _tenants = tenantsList;
+      _isConnected = true;
+      _isLoading = false;
+      notifyListeners(); // Show tenants immediately
+      
+      debugPrint('Initial tenants loaded: ${tenantsList.length} tenants');
+    } catch (e) {
+      debugPrint('Error loading initial tenants: $e');
+      // Stream will still be set up as fallback
       _isLoading = false;
       notifyListeners();
     }
@@ -399,8 +478,11 @@ class DataProvider extends ChangeNotifier {
 
   Future<void> deleteTenant(String id) async {
     await _tenantsService.deleteTenant(id);
-    await Future.delayed(const Duration(milliseconds: 100));
-    notifyListeners();
+    
+    // Manually reload tenants to update UI immediately (since stream may not emit events)
+    await _loadInitialTenants();
+    
+    debugPrint('✅ Tenant deleted and list refreshed');
   }
 
   Future<void> addTicket(Ticket ticket) async {
