@@ -1,12 +1,10 @@
 import 'package:dormease/helper/ui_elements.dart';
-import 'package:dormease/translations/locale_keys.g.dart';
 import 'package:dormease/views/home/add_tenant_screen.dart';
 import 'package:dormease/views/home/tenant_detail_screen.dart';
 import 'package:dormease/views/home/edit_tenant_screen.dart';
 import 'package:dormease/providers/data_provider.dart';
 import 'package:dormease/providers/user_provider.dart';
 import 'package:dormease/models/tenant.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
