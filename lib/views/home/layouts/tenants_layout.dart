@@ -4,6 +4,7 @@ import 'package:dormease/views/home/add_tenant_screen.dart';
 import 'package:dormease/views/home/tenant_detail_screen.dart';
 import 'package:dormease/views/home/edit_tenant_screen.dart';
 import 'package:dormease/providers/data_provider.dart';
+import 'package:dormease/providers/user_provider.dart';
 import 'package:dormease/models/tenant.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -170,8 +171,14 @@ class TenantCard extends StatelessWidget {
   }
 
   void _sendRentReminder(BuildContext context) async {
+    // Get business details from UserProvider
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userData = userProvider.userData;
+    final businessName = userData['businessName'] ?? userData['business_name'] ?? 'Hostel';
+    final upiPhone = userData['phone'] ?? '';
+    
     final message =
-        "Hello ${tenant.name},\n\nThis is a friendly reminder that your rent is Due.\n\nAmount: ₹${tenant.monthlyRent.toStringAsFixed(0)}\nDue Date: ${tenant.nextRentDueDate.day}/${tenant.nextRentDueDate.month}/${tenant.nextRentDueDate.year}\n\nPlease make the payment at your earliest convenience.\n\nThank you!";
+        "Hello ${tenant.name},\n\nThis is a friendly reminder that your rent is Due.\n\nAmount: ₹${tenant.monthlyRent.toStringAsFixed(0)}\nDue Date: ${tenant.nextRentDueDate.day}/${tenant.nextRentDueDate.month}/${tenant.nextRentDueDate.year}\n\nPlease make the payment at your earliest\nUpi $upiPhone\n\nThank you!\n$businessName";
 
     final phoneNumber = tenant.phone.replaceAll(RegExp(r'[^0-9]'), '');
     final whatsappUrl =

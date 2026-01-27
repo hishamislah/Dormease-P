@@ -33,6 +33,7 @@ class _EditTenantScreenState extends State<EditTenantScreen> {
   
   bool underNotice = false;
   bool rentDue = false;
+  DateTime? joinedDate;
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _EditTenantScreenState extends State<EditTenantScreen> {
     depositController.text = widget.tenant.securityDeposit.toStringAsFixed(0);
     underNotice = widget.tenant.underNotice;
     rentDue = widget.tenant.rentDue;
+    joinedDate = widget.tenant.joinedDate;
   }
 
   void _updateTenant() {
@@ -58,7 +60,7 @@ class _EditTenantScreenState extends State<EditTenantScreen> {
       emergencyContact: emergencyContactController.text,
       description: descriptionController.text,
       roomNumber: roomController.text,
-      joinedDate: widget.tenant.joinedDate,
+      joinedDate: joinedDate ?? widget.tenant.joinedDate,
       monthlyRent: double.parse(rentController.text),
       securityDeposit: double.parse(depositController.text),
       underNotice: underNotice,
@@ -218,6 +220,63 @@ class _EditTenantScreenState extends State<EditTenantScreen> {
                             depositValid = isValid;
                           });
                         },
+                      ),
+                      const SizedBox(height: 16),
+                      // Joining Date Picker
+                      GestureDetector(
+                        onTap: () async {
+                          final DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: joinedDate ?? DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null && picked != joinedDate) {
+                            setState(() {
+                              joinedDate = picked;
+                            });
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_today, color: Colors.grey),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Joining Date",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        joinedDate != null
+                                            ? "${joinedDate!.day}/${joinedDate!.month}/${joinedDate!.year}"
+                                            : "Select joining date",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Card(

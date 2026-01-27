@@ -13,6 +13,7 @@ class EditProfile extends StatefulWidget {
 class _EditProfileState extends State<EditProfile> {
   final businessNameController = TextEditingController();
   final businessEmailController = TextEditingController();
+  final phoneController = TextEditingController();
   final addressController = TextEditingController();
   final cityController = TextEditingController();
   final stateController = TextEditingController();
@@ -20,6 +21,7 @@ class _EditProfileState extends State<EditProfile> {
   
   var businessNameValid = true;
   var businessEmailValid = true;
+  var phoneValid = true;
   var addressValid = true;
   var cityValid = true;
   var stateValid = true;
@@ -44,6 +46,7 @@ class _EditProfileState extends State<EditProfile> {
     final userData = context.read<UserProvider>().userData;
     businessNameController.text = userData['businessName'] ?? userData['business_name'] ?? '';
     businessEmailController.text = userData['businessEmail'] ?? userData['business_email'] ?? '';
+    phoneController.text = userData['phone'] ?? '';
     addressController.text = userData['address'] ?? '';
     cityController.text = userData['city'] ?? '';
     stateController.text = userData['state'] ?? '';
@@ -102,6 +105,22 @@ class _EditProfileState extends State<EditProfile> {
                     updateValid: (bool isValid) {
                       setState(() {
                         businessEmailValid = isValid;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  InputText(
+                    controller: phoneController,
+                    keyboard: TextInputType.phone,
+                    hint: "Phone Number",
+                    icon: Icons.phone,
+                    min: 10,
+                    max: 15,
+                    valid: phoneValid,
+                    error: "Please enter a valid phone number",
+                    updateValid: (bool isValid) {
+                      setState(() {
+                        phoneValid = isValid;
                       });
                     },
                   ),
@@ -188,7 +207,7 @@ class _EditProfileState extends State<EditProfile> {
                 
                 final userData = context.read<UserProvider>().userData;
                 context.read<UserProvider>().updateBusinessDetails(
-                  phone: userData['phone'],
+                  phone: phoneController.text,
                   logoUrl: userData['logoUrl'],
                   businessName: businessNameController.text,
                   businessEmail: businessEmailController.text,
