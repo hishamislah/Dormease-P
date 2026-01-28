@@ -78,10 +78,13 @@ class SupabaseAdminService {
   // Get members of an organization using admin function (bypasses RLS)
   Future<List<Map<String, dynamic>>> getOrganizationMembers(String orgId) async {
     try {
-      final members = await _supabase.rpc('get_organization_members_admin', params: {
+      final result = await _supabase.rpc('get_organization_members_admin', params: {
         'p_org_id': orgId,
       });
-      return List<Map<String, dynamic>>.from(members ?? []);
+      if (result is List) {
+        return List<Map<String, dynamic>>.from(result);
+      }
+      return [];
     } catch (e) {
       debugPrint('Error fetching organization members: $e');
       return [];
