@@ -2,6 +2,8 @@ import 'package:dormease/translations/locale_keys.g.dart';
 import 'package:dormease/views/on_boarding/login.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void logout(BuildContext context) {
   showDialog(
@@ -25,22 +27,36 @@ void logout(BuildContext context) {
                   child: Text(LocaleKeys.no.tr(),
                       style: const TextStyle(color: Colors.black))),
               TextButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => const Login()),
-                        (route) => false);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Row(
-                          children: [
-                            Text(LocaleKeys.logoutSuccess.tr(),
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w500)),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.done_all, color: Colors.white)
-                          ],
-                        ),
-                        backgroundColor: Colors.green));
+                  onPressed: () async {
+                    // Clear SharedPreferences
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('isLoggedIn', false);
+                    await prefs.setBool('isAdmin', false);
+                    
+                    // Sign out from Supabase
+                    try {
+                      await Supabase.instance.client.auth.signOut();
+                    } catch (e) {
+                      debugPrint('Supabase signout error: $e');
+                    }
+                    
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const Login()),
+                          (route) => false);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Row(
+                            children: [
+                              Text(LocaleKeys.logoutSuccess.tr(),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w500)),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.done_all, color: Colors.white)
+                            ],
+                          ),
+                          backgroundColor: Colors.green));
+                    }
                   },
                   child: Text(LocaleKeys.yes.tr(),
                       style: const TextStyle(color: Colors.black)))

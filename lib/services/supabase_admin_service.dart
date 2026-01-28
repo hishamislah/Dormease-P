@@ -20,16 +20,11 @@ class SupabaseAdminService {
     return email == adminEmail && password == adminPassword;
   }
 
-  // Get all organizations
+  // Get all organizations using admin function (bypasses RLS)
   Future<List<Organization>> getAllOrganizations() async {
     try {
-      final data = await _supabase
-          .from('organizations')
-          .select('id, name, slug, logo_url, email, phone, address, city, state, country, plan, is_paused, paused_reason, paused_at, created_at, updated_at')
-          .order('created_at', ascending: false)
-          .limit(100);
-
-      return data.map<Organization>((o) => Organization.fromJson(o)).toList();
+      final data = await _supabase.rpc('get_all_organizations_admin');
+      return (data as List).map<Organization>((o) => Organization.fromJson(o)).toList();
     } catch (e) {
       debugPrint('Error fetching organizations: $e');
       return [];
@@ -80,16 +75,13 @@ class SupabaseAdminService {
     }
   }
 
-  // Get members of an organization
+  // Get members of an organization using admin function (bypasses RLS)
   Future<List<Map<String, dynamic>>> getOrganizationMembers(String orgId) async {
     try {
-      final members = await _supabase
-          .from('organization_members')
-          .select('id, organization_id, user_id, profile_id, role, joined_at, profiles!organization_members_profile_id_fkey(profile_id, email)')
-          .eq('organization_id', orgId)
-          .limit(50);  // Pagination limit
-
-      return List<Map<String, dynamic>>.from(members);
+      final members = await _supabase.rpc('get_organization_members_admin', params: {
+        'p_org_id': orgId,
+      });
+      return List<Map<String, dynamic>>.from(members ?? []);
     } catch (e) {
       debugPrint('Error fetching organization members: $e');
       return [];
@@ -257,25 +249,28 @@ class SupabaseAdminService {
     }
   }
 
-  // Pause an organization
+  // Pause an organization using admin function (bypasses RLS)
   Future<Map<String, dynamic>> pauseOrganization(String orgId, {String? reason}) async {
     try {
       debugPrint('Pausing organization: $orgId');
-      await _supabase
-          .from('organizations')
-          .update({
-            'is_paused': true,
-            'paused_reason': reason,
-            'paused_at': DateTime.now().toIso8601String(),
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', orgId);
+      final result = await _supabase.rpc('pause_organization_admin', params: {
+        'p_organization_id': orgId,
+        'p_reason': reason,
+      });
 
-      debugPrint('Organization paused successfully');
-      return {
-        'success': true,
-        'message': 'Organization paused successfully',
-      };
+      debugPrint('Pause result: $result');
+      
+      if (result != null && result['success'] == true) {
+        return {
+          'success': true,
+          'message': result['message'] ?? 'Organization paused successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': result?['message'] ?? 'Failed to pause organization',
+        };
+      }
     } catch (e) {
       debugPrint('Error pausing organization: $e');
       return {
@@ -285,25 +280,27 @@ class SupabaseAdminService {
     }
   }
 
-  // Resume an organization
+  // Resume an organization using admin function (bypasses RLS)
   Future<Map<String, dynamic>> resumeOrganization(String orgId) async {
     try {
       debugPrint('Resuming organization: $orgId');
-      await _supabase
-          .from('organizations')
-          .update({
-            'is_paused': false,
-            'paused_reason': null,
-            'paused_at': null,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', orgId);
+      final result = await _supabase.rpc('resume_organization_admin', params: {
+        'p_organization_id': orgId,
+      });
 
-      debugPrint('Organization resumed successfully');
-      return {
-        'success': true,
-        'message': 'Organization resumed successfully',
-      };
+      debugPrint('Resume result: $result');
+      
+      if (result != null && result['success'] == true) {
+        return {
+          'success': true,
+          'message': result['message'] ?? 'Organization resumed successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': result?['message'] ?? 'Failed to resume organization',
+        };
+      }
     } catch (e) {
       debugPrint('Error resuming organization: $e');
       return {
@@ -313,25 +310,51 @@ class SupabaseAdminService {
     }
   }
 
-  // Get dashboard stats
+  // Get organization details with stats using admin function (bypasses RLS)
+  Future<Map<String, dynamic>> getOrganizationDetails(String orgId) async {
+    try {
+      final result = await _supabase.rpc('get_organization_details_admin', params: {
+        'p_organization_id': orgId,
+      });
+
+      if (result != null && result['success'] == true) {
+        return {
+          'success': true,
+          'organization': result['organization'],
+          'stats': result['stats'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': result?['message'] ?? 'Failed to get organization details',
+        };
+      }
+    } catch (e) {
+      debugPrint('Error getting organization details: $e');
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  // Get dashboard stats using admin function (bypasses RLS)
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
-      final orgsCount = await getOrganizationCount();
-      final usersCount = await getTotalUsersCount();
-      
-      // Get total rooms
-      final roomsResponse = await _supabase.from('rooms').select('id');
-      final totalRooms = roomsResponse.length;
-      
-      // Get total tenants
-      final tenantsResponse = await _supabase.from('tenants').select('id');
-      final totalTenants = tenantsResponse.length;
-
+      final result = await _supabase.rpc('get_admin_stats');
+      if (result != null) {
+        return {
+          'organizations': result['organizations'] ?? 0,
+          'users': result['users'] ?? 0,
+          'rooms': result['rooms'] ?? 0,
+          'tenants': result['tenants'] ?? 0,
+        };
+      }
       return {
-        'organizations': orgsCount,
-        'users': usersCount,
-        'rooms': totalRooms,
-        'tenants': totalTenants,
+        'organizations': 0,
+        'users': 0,
+        'rooms': 0,
+        'tenants': 0,
       };
     } catch (e) {
       debugPrint('Error getting dashboard stats: $e');
